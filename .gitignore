@@ -1,0 +1,14 @@
+# CarboxyDB — auto-generated
+data/raw/
+data/primary/
+data/features/
+data/ml/
+data/dbs/
+database/*.sqlite
+models/*.pkl
+models/*.json
+logs/
+__pycache__/
+*.pyc
+.env
+credentials.json
