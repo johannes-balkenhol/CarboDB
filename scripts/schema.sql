@@ -228,6 +228,58 @@ CREATE TABLE IF NOT EXISTS features_esm2 (
 );
 CREATE INDEX IF NOT EXISTS idx_esm_uid ON features_esm2(uniprot_id);
 
+-- ── Ankh embeddings (CPU job — ankh-large, 1024-dim) ─────────────────────────
+CREATE TABLE IF NOT EXISTS features_ankh (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    sequence_id     INTEGER UNIQUE NOT NULL REFERENCES sequences(id),
+    cdb_id          TEXT    UNIQUE NOT NULL,
+    uniprot_id      TEXT    NOT NULL,
+    embedding_blob  BLOB,
+    model_version   TEXT DEFAULT 'ankh-large',
+    computed_at     TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_ankh_cdb ON features_ankh(cdb_id);
+CREATE INDEX IF NOT EXISTS idx_ankh_uid ON features_ankh(uniprot_id);
+
+-- ── InterProScan features ──────────────────────────────────────────────────────
+-- Pfam, ProSiteProfiles, ProSitePatterns, PANTHER, Gene3D, TIGRFAM, SUPERFAMILY, CDD, HAMAP
+CREATE TABLE IF NOT EXISTS features_interpro (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    sequence_id     INTEGER UNIQUE NOT NULL REFERENCES sequences(id),
+    cdb_id          TEXT    UNIQUE NOT NULL,
+    uniprot_id      TEXT    NOT NULL,
+    panther_family      TEXT,
+    panther_subfamily   TEXT,
+    gene3d_domains_json TEXT,
+    cath_superfamily    TEXT,
+    tigrfam_hits_json   TEXT,
+    superfamily_json    TEXT,
+    cdd_hits_json       TEXT,
+    hamap_hits_json     TEXT,
+    prosite_profiles_json TEXT,
+    prosite_patterns_json TEXT,
+    n_panther       INTEGER DEFAULT 0,
+    n_gene3d        INTEGER DEFAULT 0,
+    n_tigrfam       INTEGER DEFAULT 0,
+    n_prosite_prof  INTEGER DEFAULT 0,
+    n_prosite_pat   INTEGER DEFAULT 0,
+    raw_ipr_json    TEXT,
+    interproscan_version TEXT DEFAULT '5.72-103.0',
+    computed_at     TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_ipr_cdb     ON features_interpro(cdb_id);
+CREATE INDEX IF NOT EXISTS idx_ipr_uid     ON features_interpro(uniprot_id);
+CREATE INDEX IF NOT EXISTS idx_ipr_panther ON features_interpro(panther_family);
+CREATE INDEX IF NOT EXISTS idx_ipr_cath    ON features_interpro(cath_superfamily);
+
+-- ── CDB_ID map table (mirrors id_map.tsv for SQL joins) ───────────────────────
+CREATE TABLE IF NOT EXISTS id_map (
+    cdb_id      TEXT PRIMARY KEY,
+    uniprot_id  TEXT UNIQUE,
+    created_at  TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_idmap_uid ON id_map(uniprot_id);
+
 -- ── ML predictions ─────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS predictions (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -266,7 +318,8 @@ CREATE TABLE IF NOT EXISTS db_metadata (
     key   TEXT PRIMARY KEY,
     value TEXT
 );
-INSERT OR REPLACE INTO db_metadata VALUES ('schema_version', '2.0');
+INSERT OR REPLACE INTO db_metadata VALUES ('schema_version', '2.1');
 INSERT OR REPLACE INTO db_metadata VALUES ('km_unit',        'mM');
 INSERT OR REPLACE INTO db_metadata VALUES ('created',        datetime('now'));
 INSERT OR REPLACE INTO db_metadata VALUES ('meme_status',    'pending');
+INSERT OR REPLACE INTO db_metadata VALUES ('label_system',   '0=negative,1=carboxylase,2=ancestral_co2');

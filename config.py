@@ -87,6 +87,24 @@ class CFG:
     # CDB_ID format: CDB000001, CDB000002, …
     # Assigned once in script 03_merge_all_sources.py and never changed.
     CDB_ID_PREFIX   = "CDB"
+
+    # ── Label constants ────────────────────────────────────────────────────────
+    LABEL_POSITIVE   = 1
+    LABEL_ANCESTRAL  = 2
+    LABEL_NEGATIVE   = 0
+
+    # ── Ancestral CO2-related EC classes (label=2) ─────────────────────────────
+    CO2_RELATED_EC = {
+        "1.1.1.42", "1.1.1.40", "1.1.1.44", "1.1.1.87",
+        "1.1.1.43", "1.2.4.1", "1.2.4.2",
+        "1.17.1.9", "1.17.1.10", "1.17.98.4", "1.17.98.5",
+        "1.14.17.4", "1.3.1.85", "1.4.4.2", "2.5.1.143",
+        "4.1.1.1",  "4.1.1.3",  "4.1.1.7",  "4.1.1.11",
+        "4.1.1.15", "4.1.1.17", "4.1.1.18", "4.1.1.19",
+        "4.1.1.20", "4.1.1.25", "4.1.1.28", "4.1.1.33",
+        "4.1.1.36", "4.1.1.48", "4.1.1.50",
+    }
+
     CDB_ID_WIDTH    = 6          # zero-padded to 6 digits → CDB000001
 
     # ── Sequence validation ────────────────────────────────────────────────────
@@ -259,3 +277,6 @@ def latest_file(directory: Path, pattern: str) -> Path:
             f"No file matching '{pattern}' in {directory}"
         )
     return files[-1]
+
+# Appended by patch — CO2_RELATED_EC missing from original
+# Add inside CFG class manually or replace config.py with full version
