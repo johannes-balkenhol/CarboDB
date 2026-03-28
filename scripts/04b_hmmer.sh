@@ -1,5 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=carbodb_hmmer
+#SBATCH --chdir=/storage/users/job37yv/Projects/CarboDB_v3
 #SBATCH --partition=hades
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
