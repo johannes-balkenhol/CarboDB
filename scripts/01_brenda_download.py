@@ -304,7 +304,90 @@ def scan_for_co2_enzymes(client: BRENDAClient):
 
     print(f"\n  EC classes with CO2/HCO3- Km: {len(ec_found)}")
     print(f"  Total Km entries:             {len(km_rows)}")
-    print(f"  Unique sequences:             {len(seq_rows)}")
+    print(f"  Unique sequences from EC scan: {len(seq_rows)}")
+
+    # ── Third pass: fetch sequences for Km UniProt IDs not yet in seq_rows ──
+    # BRENDA's getSequence() sometimes misses sequences that appear in Km entries.
+    # This ensures every sequence with a Km value is downloaded, making the
+    # pipeline fully reproducible — no manual patches needed on future runs.
+    #
+    # Strategy: for each Km entry that has a UniProt ID not yet in seen_seqs,
+    # fetch the sequence directly from UniProt REST API.
+
+    import requests as _requests
+
+    # First do the genus+species join to get UniProt IDs for Km entries
+    def _gs(s):
+        parts = str(s).strip().split()
+        return " ".join(parts[:2]).lower()
+
+    seq_lookup = {}
+    for row in seq_rows:
+        key = (row["ec_number"], _gs(row["organism"]))
+        if key not in seq_lookup:
+            seq_lookup[key] = row["uniprot_id"]
+
+    # Find Km entries whose UniProt ID is not yet in seq_rows
+    km_uids_needed = set()
+    for row in km_rows:
+        uid = str(row.get("uniprot_id", "") or "").strip()
+        if not uid:
+            # Try genus+species lookup
+            uid = seq_lookup.get((row["ec_number"], _gs(row["organism"])), "")
+        if uid and uid not in seen_seqs:
+            km_uids_needed.add((uid, row["ec_number"], row["organism"]))
+
+    if km_uids_needed:
+        print(f"\n  Fetching {len(km_uids_needed)} sequences for Km entries "
+              f"not in BRENDA sequence download...")
+
+        UNIPROT_URL = "https://rest.uniprot.org/uniprotkb/{uid}.fasta"
+        fetched = 0
+        failed  = 0
+
+        for uid, ec, organism in tqdm(km_uids_needed,
+                                      desc="Fetching Km sequences from UniProt"):
+            if uid in seen_seqs:
+                continue
+            try:
+                r = _requests.get(
+                    f"https://rest.uniprot.org/uniprotkb/{uid}.fasta",
+                    timeout=30
+                )
+                if r.status_code != 200:
+                    failed += 1
+                    continue
+                lines = r.text.strip().splitlines()
+                if not lines or not lines[0].startswith(">"):
+                    failed += 1
+                    continue
+                seq = "".join(lines[1:]).strip()
+                if not seq:
+                    failed += 1
+                    continue
+
+                seen_seqs.add(uid)
+                seq_rows.append({
+                    "uniprot_id":  uid,
+                    "ec_number":   ec,
+                    "enzyme_name": "",
+                    "organism":    organism,
+                    "length":      len(seq),
+                    "sequence":    seq,
+                    "source":      "uniprot_rest",
+                    "label":       1,
+                })
+                fetched += 1
+                time.sleep(0.2)
+
+            except Exception as e:
+                failed += 1
+                time.sleep(0.5)
+
+        print(f"  Fetched {fetched} additional sequences "
+              f"({failed} not found in UniProt)")
+
+    print(f"  Total unique sequences (final): {len(seq_rows)}")
     return km_rows, seq_rows, ec_found
 
 
