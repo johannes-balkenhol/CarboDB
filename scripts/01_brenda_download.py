@@ -357,30 +357,113 @@ def save_results(km_rows, seq_rows, neg_rows, ec_found):
 
     # ── 1. Km table (gold standard) ───────────────────────────────────────────
     df_km = pd.DataFrame(km_rows)
-    df_km.to_csv(OUT / f"brenda_co2_km_{TS}.tsv", sep="\t", index=False)
     print(f"  Km entries:      {len(df_km):>8,}  → brenda_co2_km_{TS}.tsv")
 
-    # ── 2. Curate Km: one row per UniProt ID ──────────────────────────────────
-    # Keep only rows with a UniProt ID and a numeric Km
-    df_km_uid = df_km[
-        df_km["uniprot_id"].str.len() > 0
-    ].copy()
-    df_km_uid["km_value_mM"] = pd.to_numeric(df_km_uid["km_value_mM"], errors="coerce")
-    df_km_uid = df_km_uid[df_km_uid["km_value_mM"] > 0]
-    df_km_uid = df_km_uid[df_km_uid["km_value_mM"] <= 1000]  # remove outliers
+    # ── Build df_pos early — needed for Km→UniProt ID join ───────────────────
+    df_pos = pd.DataFrame(seq_rows)
 
-    # Best Km = minimum wild-type value per sequence
+    # ── 2. Curate Km: one row per UniProt ID ──────────────────────────────────
+    # PRIMARY KEY IS uniprot_id — Km belongs to a sequence, not a species.
+    # Organism is secondary metadata only.
+    #
+    # Strategy:
+    #   a) Use uniprot_id directly from getKmValue() if present (rare)
+    #   b) Cross-reference with sequences via genus+species match (main path)
+    #   c) Keep unmatched rows with empty uniprot_id for reference only
+    #
+    # This ensures brenda_km_curated_*.tsv always has uniprot_id populated
+    # and annual reruns produce consistent results without manual patching.
+
+    import re as _re
+
+    def _genus_species(s):
+        parts = str(s).strip().split()
+        return " ".join(parts[:2]).lower()
+
+    # Build lookup from sequences: (ec_number, genus_species) -> uniprot_id
+    # If multiple UniProt IDs share same ec+org, keep all (comma-separated)
+    # We prefer the first accession code from getSequence()
+    seq_lookup = {}
+    for _, row in df_pos.iterrows():
+        key = (row["ec_number"], _genus_species(row["organism"]))
+        if key not in seq_lookup:
+            seq_lookup[key] = row["uniprot_id"]
+
+    # Fix Km rows: fill uniprot_id from sequence lookup where missing
+    df_km = df_km.copy()
+    df_km["_gs"] = df_km["organism"].apply(_genus_species)
+
+    def _get_uid(row):
+        # Use direct uniprot_id if already present
+        if str(row.get("uniprot_id", "")).strip():
+            return str(row["uniprot_id"]).strip()
+        # Fall back to sequence lookup
+        return seq_lookup.get((row["ec_number"], row["_gs"]), "")
+
+    df_km["uniprot_id"] = df_km.apply(_get_uid, axis=1)
+    df_km = df_km.drop(columns=["_gs"])
+
+    # Save the full Km table with uniprot_ids now populated
+    df_km.to_csv(OUT / f"brenda_co2_km_{TS}.tsv", sep="\t", index=False)
+
+    n_uid_filled = (df_km["uniprot_id"].str.len() > 0).sum()
+    print(f"  Km with UniProt ID: {n_uid_filled:>6,} / {len(df_km)} "
+          f"({100*n_uid_filled/max(len(df_km),1):.1f}%)")
+
+    # Curate: one best Km per uniprot_id
+    # Best = quality-scored: penalise mutants/inhibitors, reward wild-type/physiological pH
+    def _score_km(commentary: str) -> int:
+        c = str(commentary).lower()
+        score = 0
+        if "mutant" in c or "mutation" in c:   score -= 100
+        if "variant" in c:                      score -= 50
+        if "inhibit" in c:                      score -= 40
+        if "in the presence of" in c:           score -= 30
+        if "absence of zn" in c:                score -= 50
+        if "wild-type" in c or "wildtype" in c: score += 50
+        if "native" in c:                       score += 30
+        ph = _re.search(r'ph\s*(\d+\.?\d*)', c)
+        if ph:
+            v = float(ph.group(1))
+            score += 20 if 7.0 <= v <= 8.0 else (10 if 6.5 <= v <= 8.5 else -10)
+        tmp = _re.search(r'(\d+)\s*[°?]?\s*c\b', c)
+        if tmp:
+            t = int(tmp.group(1))
+            score += 15 if t in (25, 37) else (5 if 20 <= t <= 40 else 0)
+        return score
+
+    df_km_uid = df_km[df_km["uniprot_id"].str.len() > 0].copy()
+    df_km_uid["km_value_mM"] = pd.to_numeric(df_km_uid["km_value_mM"], errors="coerce")
+    df_km_uid = df_km_uid[df_km_uid["km_value_mM"].between(1e-5, 1000)]
+    df_km_uid["_score"] = df_km_uid["commentary"].apply(_score_km)
+
+    # Best row per uniprot_id = highest quality score, tie-break by median
+    df_km_uid = df_km_uid.sort_values(
+        ["uniprot_id", "_score"], ascending=[True, False]
+    )
+    best_scores = df_km_uid.groupby("uniprot_id")["_score"].max().reset_index()
+    df_km_uid = df_km_uid.merge(best_scores.rename(columns={"_score":"_best"}),
+                                on="uniprot_id")
+    df_km_uid = df_km_uid[df_km_uid["_score"] == df_km_uid["_best"]]
+
     df_km_curated = (
-        df_km_uid.sort_values("km_value_mM")
-        .drop_duplicates(subset="uniprot_id", keep="first")
-        [["uniprot_id", "ec_number", "km_value_mM", "organism"]]
+        df_km_uid.groupby(["uniprot_id", "ec_number"])["km_value_mM"]
+        .median()
+        .reset_index()
         .rename(columns={"km_value_mM": "km_best_mM"})
     )
+    # Attach organism from positives for reference
+    org_map = df_pos.set_index("uniprot_id")["organism"].to_dict()
+    df_km_curated["organism"] = df_km_curated["uniprot_id"].map(org_map).fillna("")
+    df_km_curated["km_log10_mM"] = df_km_curated["km_best_mM"].apply(
+        lambda x: __import__("math").log10(x) if x > 0 else float("nan")
+    )
+
     df_km_curated.to_csv(OUT / f"brenda_km_curated_{TS}.tsv", sep="\t", index=False)
     print(f"  Unique seqs+Km:  {len(df_km_curated):>8,}  → brenda_km_curated_{TS}.tsv")
 
     # ── 3. Positive sequences ─────────────────────────────────────────────────
-    df_pos = pd.DataFrame(seq_rows)
+    # df_pos already built above for Km join
     df_pos.to_csv(OUT / f"brenda_positives_{TS}.tsv", sep="\t", index=False)
 
     pos_fasta = OUT / f"positives_{TS}.fasta"
