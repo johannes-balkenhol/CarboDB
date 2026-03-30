@@ -1,6 +1,5 @@
 #!/bin/bash
 #SBATCH --job-name=carbodb_hmmer
-#SBATCH --chdir=/storage/users/job37yv/Projects/CarboDB_v3
 #SBATCH --partition=hades
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -35,8 +34,7 @@ LOGS=${PROJECT}/logs
 mkdir -p ${OUT_DIR}
 
 # Pad array task ID to 4 digits
-CHUNK_OFFSET=${CHUNK_OFFSET:-0}
-CHUNK=$(printf "%04d" $((${SLURM_ARRAY_TASK_ID} + ${CHUNK_OFFSET})))
+CHUNK=$(printf "%04d" ${SLURM_ARRAY_TASK_ID})
 INPUT=${CHUNKS}/chunk_${CHUNK}.fasta
 OUTPUT=${OUT_DIR}/hmmer_${CHUNK}.tsv
 DOMTBL=${OUT_DIR}/hmmer_${CHUNK}.domtblout
@@ -70,24 +68,24 @@ hmmscan \
 
 echo "hmmscan done, parsing results..."
 
-# Parse domtblout to TSV with cdb_id + pfam hits
-python3 << 'PYEOF'
-import sys
+# Parse domtblout to TSV — pass variables via environment (heredoc with 'PYEOF' blocks expansion)
+CHUNK_VAR="${CHUNK}" DOMTBL_VAR="${DOMTBL}" OUTPUT_VAR="${OUTPUT}" INPUT_VAR="${INPUT}" \
+python3 << PYEOF
+import os, sys, json
 from pathlib import Path
 import pandas as pd
 
-chunk = "${CHUNK}"
-domtbl = Path("${DOMTBL}")
-output = Path("${OUTPUT}")
+chunk  = os.environ["CHUNK_VAR"]
+domtbl = Path(os.environ["DOMTBL_VAR"])
+output = Path(os.environ["OUTPUT_VAR"])
+input_fasta = os.environ["INPUT_VAR"]
 
 if not domtbl.exists() or domtbl.stat().st_size == 0:
-    # No hits — write empty file with header only
     output.write_text("cdb_id\tpfam_hits_json\tpfam_n_hits\n")
     print(f"No hits for chunk {chunk}")
     sys.exit(0)
 
-# Parse domtblout
-hits = {}  # cdb_id -> list of pfam accessions
+hits = {}
 with open(domtbl) as f:
     for line in f:
         if line.startswith("#"):
@@ -95,19 +93,16 @@ with open(domtbl) as f:
         parts = line.split()
         if len(parts) < 4:
             continue
-        pfam_acc = parts[1].split(".")[0]   # e.g. PF00016
-        query    = parts[3]                  # sequence name = cdb_id|uniprot|...
+        pfam_acc = parts[1].split(".")[0]
+        query    = parts[3]
         cdb_id   = query.split("|")[0]
-        evalue   = float(parts[6])           # i-evalue
+        evalue   = float(parts[6])
         if evalue <= 1e-3:
             if cdb_id not in hits:
                 hits[cdb_id] = []
             if pfam_acc not in hits[cdb_id]:
                 hits[cdb_id].append(pfam_acc)
 
-import json
-
-# Known carboxylase Pfam domains (binary columns)
 CARBOXY_PFAM = [
     "PF00016","PF02788","PF00101","PF00194","PF03119",
     "PF00311","PF00821","PF02785","PF00364","PF01039",
@@ -117,19 +112,13 @@ CARBOXY_PFAM = [
 
 rows = []
 for cdb_id, pfam_list in hits.items():
-    row = {
-        "cdb_id":          cdb_id,
-        "pfam_hits_json":  json.dumps(sorted(pfam_list)),
-        "pfam_n_hits":     len(pfam_list),
-    }
+    row = {"cdb_id": cdb_id, "pfam_hits_json": json.dumps(sorted(pfam_list)), "pfam_n_hits": len(pfam_list)}
     for pf in CARBOXY_PFAM:
         row[f"pfam_{pf}"] = 1 if pf in pfam_list else 0
     rows.append(row)
 
-# Also add zero rows for sequences with no hits
-# (read all cdb_ids from the input fasta)
 seen = set(hits.keys())
-with open("${INPUT}") as f:
+with open(input_fasta) as f:
     for line in f:
         if line.startswith(">"):
             cdb_id = line[1:].split("|")[0].strip()

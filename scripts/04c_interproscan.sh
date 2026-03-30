@@ -1,6 +1,5 @@
 #!/bin/bash
 #SBATCH --job-name=carbodb_ipr
-#SBATCH --chdir=/storage/users/job37yv/Projects/CarboDB_v3
 #SBATCH --partition=hades
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -32,8 +31,7 @@ TMPDIR=${PROJECT}/data/interim/ipr_tmp
 
 mkdir -p ${OUT_DIR} ${TMPDIR}
 
-CHUNK_OFFSET=${CHUNK_OFFSET:-0}
-CHUNK=$(printf "%04d" $((${SLURM_ARRAY_TASK_ID} + ${CHUNK_OFFSET})))
+CHUNK=$(printf "%04d" ${SLURM_ARRAY_TASK_ID})
 INPUT=${CHUNKS}/chunk_${CHUNK}.fasta
 OUTPUT=${OUT_DIR}/ipr_${CHUNK}.tsv
 
@@ -77,14 +75,16 @@ rm -f ${CLEAN_INPUT}
 rm -rf ${TMPDIR}/ipr_${CHUNK}_tmp
 
 # Parse TSV to structured format
-python3 << 'PYEOF'
-import json
-import sys
+CHUNK_VAR="${CHUNK}" OUTPUT_VAR="${OUTPUT}" INPUT_VAR="${INPUT}" \
+python3 << PYEOF
+import os, json, sys
 from pathlib import Path
 import pandas as pd
 
-chunk  = "${CHUNK}"
-output = Path("${OUTPUT}")
+chunk  = os.environ["CHUNK_VAR"]
+output = Path(os.environ["OUTPUT_VAR"])
+input_fasta = os.environ["INPUT_VAR"]
+parsed = output.with_suffix(".parsed.tsv")
 parsed = output.with_suffix(".parsed.tsv")
 
 if not output.exists() or output.stat().st_size == 0:
@@ -167,7 +167,7 @@ for cdb_id, grp in df.groupby("cdb_id"):
 
 # Add zero rows for sequences with no hits
 seen = set(r["cdb_id"] for r in rows)
-with open("${INPUT}") as f:
+with open(input_fasta) as f:
     for line in f:
         if line.startswith(">"):
             cdb_id = line[1:].split("|")[0].strip()
