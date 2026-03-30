@@ -121,3 +121,11 @@ MOTIF SUBPROJECT (pending — Layer D)
 # This is a documentation-only file. No executable code.
 # See scripts 01–05 for the actual implementation.
 print(__doc__)
+
+## Km Gold Standard Note (March 30, 2026)
+master.tsv contains 2,971 sequences with experimental Km:
+- 2,077 from current BRENDA download (matched via genus+species join)
+- 894 from CarboxyPred v3 legacy file (source='brenda_km_v3')
+  These are valid full sequences (mean 385 aa) with experimental Km.
+  Script 01 third pass will recover these automatically on future runs
+  by fetching from UniProt REST API for any Km UID not in BRENDA sequences.
