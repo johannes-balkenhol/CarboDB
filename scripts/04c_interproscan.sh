@@ -5,8 +5,8 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
-#SBATCH --output=logs/ipr_%A_%a.log
-#SBATCH --error=logs/ipr_%A_%a.log
+#SBATCH --output=/storage/users/job37yv/Projects_shared/CarboDB_v3/logs/ipr_%A_%a.log
+#SBATCH --error=/storage/users/job37yv/Projects_shared/CarboDB_v3/logs/ipr_%A_%a.log
 #SBATCH --array=1-2380%20
 # %20 = max 20 jobs at once (InterProScan is memory-heavy)
 
@@ -23,7 +23,7 @@
 
 set -euo pipefail
 
-PROJECT=/storage/users/job37yv/Projects/CarboDB_v3
+PROJECT=/storage/users/job37yv/Projects_shared/CarboDB_v3
 IPR=${PROJECT}/data/dbs/interpro/interproscan-5.72-103.0/interproscan.sh
 CHUNKS=${PROJECT}/data/interim/fasta_chunks
 OUT_DIR=${PROJECT}/data/features/interpro

@@ -5,8 +5,8 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=80
 #SBATCH --mem=200G
-#SBATCH --output=logs/hmmer_%A_%a.log
-#SBATCH --error=logs/hmmer_%A_%a.log
+#SBATCH --output=/storage/users/job37yv/Projects_shared/CarboDB_v3/logs/hmmer_%A_%a.log
+#SBATCH --error=/storage/users/job37yv/Projects_shared/CarboDB_v3/logs/hmmer_%A_%a.log
 #SBATCH --array=1-2380%50
 # %50 = max 50 jobs running simultaneously to avoid overwhelming the node
 
@@ -25,7 +25,7 @@
 
 set -euo pipefail
 
-PROJECT=/storage/users/job37yv/Projects/CarboDB_v3
+PROJECT=/storage/users/job37yv/Projects_shared/CarboDB_v3
 PFAM_HMM=${PROJECT}/data/dbs/pfam/Pfam-A.hmm
 CHUNKS=${PROJECT}/data/interim/fasta_chunks
 OUT_DIR=${PROJECT}/data/features/domains

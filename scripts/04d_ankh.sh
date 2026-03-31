@@ -1,13 +1,13 @@
 #!/bin/bash
 #SBATCH --job-name=carbodb_ankh
-#SBATCH --chdir=/storage/users/job37yv/Projects/CarboDB_v3
+#SBATCH --chdir=/storage/users/job37yv/Projects_shared/CarboDB_v3
 #SBATCH --partition=hades
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
-#SBATCH --output=logs/ankh_%A_%a.log
-#SBATCH --error=logs/ankh_%A_%a.log
+#SBATCH --output=/storage/users/job37yv/Projects_shared/CarboDB_v3/logs/ankh_%A_%a.log
+#SBATCH --error=/storage/users/job37yv/Projects_shared/CarboDB_v3/logs/ankh_%A_%a.log
 #SBATCH --array=1-2380%30
 
 # CarboxyDB — Ankh protein language model embeddings (CPU)
@@ -21,13 +21,14 @@
 
 set -euo pipefail
 
-PROJECT=/storage/users/job37yv/Projects/CarboDB_v3
+PROJECT=/storage/users/job37yv/Projects_shared/CarboDB_v3
 CHUNKS=${PROJECT}/data/interim/fasta_chunks
 OUT_DIR=${PROJECT}/data/features/ankh
 
 mkdir -p ${OUT_DIR}
 
 CHUNK_OFFSET=${CHUNK_OFFSET:-0}
+SLURM_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK:-8}
 CHUNK=$(printf "%04d" $((${SLURM_ARRAY_TASK_ID} + ${CHUNK_OFFSET})))
 INPUT=${CHUNKS}/chunk_${CHUNK}.fasta
 OUTPUT=${OUT_DIR}/ankh_${CHUNK}.tsv
