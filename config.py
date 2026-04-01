@@ -51,6 +51,8 @@ class PATHS:
     FEAT_MOTIFS     = ROOT / "data" / "features" / "motifs"
     FEAT_BLAST      = ROOT / "data" / "features" / "blast"
     FEAT_ESM2       = ROOT / "data" / "features" / "esm2"
+    FEAT_INTERPRO   = ROOT / "data" / "features" / "interpro"
+    FEAT_ANKH       = ROOT / "data" / "features" / "ankh"
     FEAT_MEME       = ROOT / "data" / "features" / "meme"
     MEME_HITS_TSV   = ROOT / "data" / "features" / "meme" / "meme_hits.tsv"  # PENDING
 
