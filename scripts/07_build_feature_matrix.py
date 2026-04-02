@@ -142,7 +142,7 @@ def load_composition(conn: sqlite3.Connection, cdb_ids: list) -> pd.DataFrame:
 
     # Load in chunks of 50k
     results = []
-    chunk_size = 50_000
+    chunk_size = 900
     for i in tqdm(range(0, len(cdb_ids), chunk_size), desc="comp chunks"):
         chunk = cdb_ids[i:i+chunk_size]
         placeholders = ",".join(["?" * len(chunk)])
@@ -169,7 +169,7 @@ def load_domains(conn: sqlite3.Connection, cdb_ids: list) -> pd.DataFrame:
 
     cols_str = ", ".join(["s.uniprot_id"] + [f"d.{col}" for col in PFAM_COLS])
     results = []
-    chunk_size = 50_000
+    chunk_size = 900
 
     for i in tqdm(range(0, len(cdb_ids), chunk_size), desc="domain chunks"):
         chunk = cdb_ids[i:i+chunk_size]
@@ -204,7 +204,7 @@ def load_interpro(conn: sqlite3.Connection, cdb_ids: list) -> pd.DataFrame:
     log.info("  Loading InterPro features (%d cols, %d rows)...", len(IPR_COLS), n)
     cols_str = ", ".join(["s.uniprot_id"] + [f"i.{col}" for col in IPR_COLS])
     results = []
-    chunk_size = 50_000
+    chunk_size = 900
 
     for i in tqdm(range(0, len(cdb_ids), chunk_size), desc="ipr chunks"):
         chunk = cdb_ids[i:i+chunk_size]
@@ -229,7 +229,7 @@ def load_esm2_embeddings(conn: sqlite3.Connection, cdb_ids: list) -> pd.DataFram
     log.info("  Loading ESM-2 embeddings (1280-dim)...")
 
     results = []
-    chunk_size = 5_000  # smaller chunks — each row is 5KB
+    chunk_size = 900  # smaller chunks — each row is 5KB
 
     for i in tqdm(range(0, len(cdb_ids), chunk_size), desc="ESM-2 chunks"):
         chunk = cdb_ids[i:i+chunk_size]
@@ -271,7 +271,7 @@ def load_ankh_embeddings(conn: sqlite3.Connection, cdb_ids: list) -> pd.DataFram
 
     log.info("  Loading Ankh embeddings (1536-dim, %d rows)...", n)
     results = []
-    chunk_size = 5_000
+    chunk_size = 900
 
     for i in tqdm(range(0, len(cdb_ids), chunk_size), desc="Ankh chunks"):
         chunk = cdb_ids[i:i+chunk_size]
