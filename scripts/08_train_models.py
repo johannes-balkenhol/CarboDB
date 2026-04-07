@@ -53,13 +53,17 @@ MODEL_VERSION = "v5"
 # ── Data loading ──────────────────────────────────────────────────────────
 
 def load_split(task, split):
-    X = np.load(ML_DIR / f"X_{task}_{split}.npz")["X"]
-    y = np.load(ML_DIR / f"y_{task}_{split}.npy")
+    suffix = "_fixed" if task == "ec" else ""
+    X = np.load(ML_DIR / f"X_{task}_{split}{suffix}.npz")["X"]
+    y = np.load(ML_DIR / f"y_{task}_{split}{suffix}.npy")
     return X, y
 
 
 def load_ec_map():
-    with open(ML_DIR / "ec_label_map.json") as f:
+    p = ML_DIR / "ec_label_map_fixed.json"
+    if not p.exists():
+        p = ML_DIR / "ec_label_map.json"
+    with open(p) as f:
         return json.load(f)
 
 
@@ -361,21 +365,21 @@ def main():
     # ── Binary ──────────────────────────────────────────────────────────
     if "binary" in args.tasks:
         model, metrics, top = train_binary(args.n_estimators)
-        model.save_model(MODEL_DIR / f"binary_{MODEL_VERSION}.json")
+        model.get_booster().save_model(MODEL_DIR / f"binary_{MODEL_VERSION}.json")
         log.info("Saved: binary_%s.json", MODEL_VERSION)
         report["tasks"]["binary"] = {"metrics": metrics, "top_features": top}
 
     # ── EC class ────────────────────────────────────────────────────────
     if "ec" in args.tasks:
         model, metrics, top = train_ec(args.n_estimators)
-        model.save_model(MODEL_DIR / f"ec_{MODEL_VERSION}.json")
+        model.get_booster().save_model(MODEL_DIR / f"ec_{MODEL_VERSION}.json")
         log.info("Saved: ec_%s.json", MODEL_VERSION)
         report["tasks"]["ec"] = {"metrics": metrics, "top_features": top}
 
     # ── Km regression ───────────────────────────────────────────────────
     if "km" in args.tasks:
         model, metrics, top = train_km(args.n_estimators)
-        model.save_model(MODEL_DIR / f"km_{MODEL_VERSION}.json")
+        model.get_booster().save_model(MODEL_DIR / f"km_{MODEL_VERSION}.json")
         log.info("Saved: km_%s.json", MODEL_VERSION)
         report["tasks"]["km"] = {"metrics": metrics, "top_features": top}
 
