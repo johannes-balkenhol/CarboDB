@@ -196,3 +196,12 @@ Each script writes a timestamped log to `logs/`.
 Raw data files are named with a timestamp: `brenda_positives_20250101_120000.tsv`.  
 The `data/primary/master.tsv` is the single source of truth — regenerate it by
 re-running scripts 01–03 in order.
+
+## Model performance (v5, April 7 2026)
+| Task | Metric | Value |
+|------|--------|-------|
+| Binary carboxylase detection | AUROC | 0.9999 |
+| Binary carboxylase detection | AUPRC | 0.9997 |
+| Binary carboxylase detection | F1 | 0.9965 |
+| EC class prediction | pending | — |
+| Km regression | pending | — |
