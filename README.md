@@ -218,3 +218,27 @@ re-running scripts 01–03 in order.
 | Km regression | R² | 0.9253 | random split, EC+kingdom features |
 | Km regression | Pearson r | 0.9628 | log10 mM scale |
 | Km regression | RMSE | 0.4072 | log10 mM |
+
+## Method comparison — EC class prediction (April 8, 2026)
+| Method | Accuracy | Coverage |
+|--------|----------|----------|
+| Pfam top-hit alone | 31.0% | 100% |
+| PANTHER family | 94.0% | 99.9% |
+| **ML v5 (XGBoost)** | **99.8%** | **100%** |
+
+## SHAP feature importance — Km regression
+| Feature group | Contribution |
+|---------------|-------------|
+| Pfam domains | 68.1% |
+| ESM-2 embedding | 17.3% |
+| Dipeptides | 10.7% |
+| EC one-hot | 2.9% |
+
+## Pipeline status
+| Script | Status |
+|--------|--------|
+| 01–07 | ✓ DONE |
+| 08 train models | ✓ DONE |
+| 09 benchmark+SHAP | ✓ DONE |
+| 10 predict all 2.38M | ⟳ running |
+| 04d Ankh embeddings | ⟳ 89% |
