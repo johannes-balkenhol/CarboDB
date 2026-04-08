@@ -205,3 +205,16 @@ re-running scripts 01–03 in order.
 | Binary carboxylase detection | F1 | 0.9965 |
 | EC class prediction | pending | — |
 | Km regression | pending | — |
+
+## Model performance update (v5 final, April 8 2026)
+| Task | Metric | Value | Notes |
+|------|--------|-------|-------|
+| Binary detection | AUROC | 0.9999 | cluster-based test set |
+| Binary detection | AUPRC | 0.9997 | |
+| Binary detection | F1 | 0.9965 | |
+| EC class (26/40) | Top-1 acc | 0.9982 | BRENDA+SwissProt only |
+| EC class (26/40) | Top-3 acc | 0.9996 | |
+| EC class (26/40) | F1 macro | 0.9389 | |
+| Km regression | R² | 0.9253 | random split, EC+kingdom features |
+| Km regression | Pearson r | 0.9628 | log10 mM scale |
+| Km regression | RMSE | 0.4072 | log10 mM |
