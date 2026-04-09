@@ -447,16 +447,16 @@ def assemble_km_vector(binary_vec: np.ndarray,
     Matches the v3 Km matrix format used in training.
     """
     # EC one-hot (17 classes = KM_TRAINABLE_EC + 7 excluded → use training order)
-    ec_oh_names = [f"ec_oh_{ec.replace('.','_')}" for ec in KM_TRAINABLE_EC]
+    ec_oh_names = [f"ec_oh_{ec}" for ec in KM_TRAINABLE_EC]
     ec_oh = {name: 0.0 for name in ec_oh_names}
-    ec_key = f"ec_oh_{ec_predicted.replace('.','_')}"
+    ec_key = f"ec_oh_{ec_predicted}"
     if ec_key in ec_oh:
         ec_oh[ec_key] = 1.0
 
     # Kingdom one-hot (4 categories from training)
-    kingdoms = ["Bacteria", "Eukaryota", "Archaea", "Viruses"]
+    kingdoms = ["bacteria", "plant", "archaea", "fungi"]
     kingdom_oh = {f"kingdom_{k}": 0.0 for k in kingdoms}
-    kkey = f"kingdom_{kingdom}"
+    kkey = f"kingdom_{kingdom.lower()}"
     if kkey in kingdom_oh:
         kingdom_oh[kkey] = 1.0
 
@@ -694,7 +694,7 @@ def main():
     ap.add_argument("--out",      type=Path, default=None,
                     help="Output JSON file (default: stdout)")
     ap.add_argument("--kingdom",  type=str, default="Bacteria",
-                    choices=["Bacteria", "Eukaryota", "Archaea", "Viruses"],
+                    choices=["bacteria", "plant", "archaea", "fungi"],
                     help="Taxonomic kingdom for Km prediction (default: Bacteria)")
     ap.add_argument("--no-esm2",  action="store_true",
                     help="Skip ESM-2 embedding (faster but less accurate)")
