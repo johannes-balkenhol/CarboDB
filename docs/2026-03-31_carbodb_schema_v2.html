@@ -1,0 +1,142 @@
+
+<style>
+#erd { padding: 0.5rem 0; }
+</style>
+<div id="erd"></div>
+<script type="module">
+import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+await document.fonts.ready;
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  fontFamily: '"Anthropic Sans", sans-serif',
+  themeVariables: {
+    darkMode: dark,
+    fontSize: '13px',
+    fontFamily: '"Anthropic Sans", sans-serif',
+    lineColor: dark ? '#9c9a92' : '#73726c',
+    textColor: dark ? '#c2c0b6' : '#3d3d3a',
+    primaryColor: dark ? '#2a2a28' : '#f1efe8',
+    primaryBorderColor: dark ? '#5f5e5a' : '#b4b2a9',
+    attributeBackgroundColorEven: dark ? '#232321' : '#ffffff',
+    attributeBackgroundColorOdd: dark ? '#2c2c2a' : '#f8f7f4',
+  },
+});
+const diagram = `erDiagram
+  sequences {
+    int id PK
+    text uniprot_id UK
+    text sequence
+    int length
+    text organism
+    int label
+    text source
+    int reviewed
+  }
+  ec_evidence {
+    int id PK
+    int sequence_id FK
+    text uniprot_id
+    text ec_number
+    text source
+    int evidence_tier
+    real confidence
+    text model_version
+  }
+  km_evidence {
+    int id PK
+    int sequence_id FK
+    text uniprot_id
+    text ec_number
+    real km_value_mM
+    real km_log10_mM
+    text substrate
+    int evidence_tier
+    text source
+    text commentary
+  }
+  features_composition {
+    int id PK
+    int sequence_id FK
+    text uniprot_id
+    real aac_A
+    real phys_mw
+    real phys_pi
+    real inv_cat_K
+    real motif_rubisco_kk
+    text dipeptide_json
+    text pseudo_aac_json
+  }
+  features_domains {
+    int id PK
+    int sequence_id FK
+    text uniprot_id
+    text pfam_hits_json
+    int pfam_PF00016
+    int pfam_PF00194
+    int pfam_n_hits
+  }
+  features_esm2 {
+    int id PK
+    int sequence_id FK
+    text uniprot_id
+    blob embedding_blob
+    text model_version
+  }
+  predictions {
+    int id PK
+    int sequence_id FK
+    text uniprot_id
+    text model_version
+    int is_co2_pred
+    real co2_prob
+    text ec_pred
+    real km_pred_mM
+  }
+  confidence_scores {
+    int id PK
+    int sequence_id FK
+    text uniprot_id
+    int method_agreement
+    real ec_confidence
+    real km_confidence
+    text confidence_label
+  }
+  db_metadata {
+    text key PK
+    text value
+  }
+  sequences ||--o{ ec_evidence : "has EC evidence"
+  sequences ||--o{ km_evidence : "has Km evidence"
+  sequences ||--o| features_composition : "has composition"
+  sequences ||--o| features_domains : "has domains"
+  sequences ||--o| features_esm2 : "has ESM-2"
+  sequences ||--o{ predictions : "has predictions"
+  sequences ||--o| confidence_scores : "has confidence"
+`;
+const { svg } = await mermaid.render('erd-svg', diagram);
+document.getElementById('erd').innerHTML = svg;
+document.querySelectorAll('#erd svg .node').forEach(node => {
+  const firstPath = node.querySelector('path[d]');
+  if (!firstPath) return;
+  const d = firstPath.getAttribute('d');
+  const nums = d.match(/-?[\d.]+/g)?.map(Number);
+  if (!nums || nums.length < 8) return;
+  const xs = [nums[0], nums[2], nums[4], nums[6]];
+  const ys = [nums[1], nums[3], nums[5], nums[7]];
+  const x = Math.min(...xs), y = Math.min(...ys);
+  const w = Math.max(...xs) - x, h = Math.max(...ys) - y;
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', x); rect.setAttribute('y', y);
+  rect.setAttribute('width', w); rect.setAttribute('height', h);
+  rect.setAttribute('rx', '8');
+  for (const a of ['fill', 'stroke', 'stroke-width', 'class', 'style']) {
+    if (firstPath.hasAttribute(a)) rect.setAttribute(a, firstPath.getAttribute(a));
+  }
+  firstPath.replaceWith(rect);
+});
+document.querySelectorAll('#erd svg .row-rect-odd path, #erd svg .row-rect-even path').forEach(p => {
+  p.setAttribute('stroke', 'none');
+});
+</script>
