@@ -585,7 +585,7 @@ def annotate_sequence(seq_id: str,
         return result
 
     feat_names_binary = load_feature_names("binary")
-    feat_names_ec     = load_feature_names("ec", "_fixed")
+    feat_names_ec     = load_feature_names("ec")
     feat_names_km     = load_feature_names("km", "_v3")
 
     # Load EC label map
