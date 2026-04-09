@@ -34,6 +34,14 @@ from pathlib import Path
 from collections import defaultdict
 
 import numpy as np
+
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, (np.integer,)): return int(obj)
+        if isinstance(obj, (np.floating,)): return float(obj)
+        if isinstance(obj, np.ndarray): return obj.tolist()
+        if isinstance(obj, (np.bool_,)): return bool(obj)
+        return super().default(obj)
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -206,7 +214,7 @@ def task_a_validation_controls(conn):
         "controls": results,
     }
 
-    json.dump(result, open(BIO_DIR / "validation_controls.json", "w"), indent=2)
+    json.dump(result, open(BIO_DIR / "validation_controls.json", "w"), indent=2, cls=NumpyEncoder)
     pd.DataFrame(results).to_csv(FIG_DIR / "validation_controls.tsv", sep="\t", index=False)
     log.info("  Saved: validation_controls.json")
     return result
@@ -290,7 +298,7 @@ def task_bc_novel_km_candidates(conn, top_n=500):
         "low_km_top5":     low_km.head(5)[["uniprot_id","organism","ec_pred","km_pred_mM","confidence_label"]].to_dict("records"),
     }
 
-    json.dump(result, open(BIO_DIR / "novel_km_candidates.json", "w"), indent=2)
+    json.dump(result, open(BIO_DIR / "novel_km_candidates.json", "w"), indent=2, cls=NumpyEncoder)
     log.info("  Saved: novel_high_km.tsv, novel_low_km.tsv, novel_km_candidates.json")
     return result
 
@@ -425,7 +433,7 @@ def task_d_taxonomic_analysis(conn):
         "top_organisms_high_km": high_km_orgs.head(20).to_dict("records"),
         "top_organisms_low_km": low_km_orgs.head(20).to_dict("records"),
     }
-    json.dump(result, open(BIO_DIR / "taxonomic_summary.json", "w"), indent=2)
+    json.dump(result, open(BIO_DIR / "taxonomic_summary.json", "w"), indent=2, cls=NumpyEncoder)
     log.info("  Saved: taxonomic_summary.json + 4 TSV files")
     return result
 
@@ -513,7 +521,7 @@ def task_e_ec_distribution(conn):
         "ec_distribution": ec_dist.to_dict("records"),
         "km_per_ec": km_per_ec.to_dict("records"),
     }
-    json.dump(result, open(BIO_DIR / "ec_distribution.json", "w"), indent=2)
+    json.dump(result, open(BIO_DIR / "ec_distribution.json", "w"), indent=2, cls=NumpyEncoder)
     log.info("  Saved: ec_distribution.json + 3 TSV files")
     return result
 
@@ -603,7 +611,7 @@ def task_f_top_novel_carboxylases(conn, top_n=500):
                                   "co2_prob","km_pred_mM","confidence_label"]].to_dict("records"),
         "ec_breakdown": novel.groupby("ec_pred").size().to_dict(),
     }
-    json.dump(result, open(BIO_DIR / "top_novel_carboxylases.json", "w"), indent=2)
+    json.dump(result, open(BIO_DIR / "top_novel_carboxylases.json", "w"), indent=2, cls=NumpyEncoder)
     log.info("  Saved: top_novel_carboxylases.json + top_novel_carboxylases.tsv")
     return result
 
