@@ -796,155 +796,13 @@ def task_c_fragment_benchmark():
 
 
 def task_d_ablation_across_conditions():
-    """
-    Task D: Full vs ESM-2-only vs Pfam+Comp vs Pfam-rule across
-    fragment conditions. Key paper table.
-    """
-    log.info("══ Task D: Feature Ablation Across Fragment Conditions ══")
-
-    booster_bin = load_booster("binary_v5.json")
-    X_bin, y_bin, _ = load_binary_data()
-    feat_names = load_feat_names("binary")
-    if not booster_bin or not feat_names:
-        return {}
-
-    esm2_idx = [i for i,n in enumerate(feat_names) if n.startswith("esm2_")]
-    pfam_idx = [i for i,n in enumerate(feat_names) if n.startswith("pfam_")]
-    comp_idx = [i for i,n in enumerate(feat_names) if
-                n.startswith("aac_") or n.startswith("dp_") or
-                n.startswith("phys_") or n.startswith("pse_")]
-
-    def make_variant(X, v):
-        Xv = np.zeros_like(X)
-        if v == "full":        return X.copy()
-        if v == "esm2_only":   Xv[:, esm2_idx] = X[:, esm2_idx]
-        elif v == "esm2_comp": Xv[:, esm2_idx] = X[:, esm2_idx]; Xv[:, comp_idx] = X[:, comp_idx]
-        elif v == "pfam_comp": Xv[:, pfam_idx] = X[:, pfam_idx]; Xv[:, comp_idx] = X[:, comp_idx]
-        elif v == "pfam_only": Xv[:, pfam_idx] = X[:, pfam_idx]
-        return Xv
-
-    def ev(X, y, label, cond, frac, mode):
-        from sklearn.metrics import roc_auc_score, f1_score
-        probs = booster_bin.predict(xgb.DMatrix(X))
-        auroc = float(roc_auc_score(y, probs))
-        f1    = float(f1_score(y, (probs>=0.5).astype(int)))
-        return {"condition": cond, "fraction": frac, "method": label,
-                "auroc": round(auroc,4), "f1": round(f1,4)}
-
-    conditions = [
-        (1.00, "full",      "Full sequence"),
-        (0.75, "n_terminal","N-terminal 75%"),
-        (0.50, "n_terminal","N-terminal 50%"),
-        (0.25, "n_terminal","N-terminal 25%"),
-        (0.50, "random",    "Random 50% fragment"),
-    ]
-    variants = [
-        ("full",      "Full CarboDB v5"),
-        ("esm2_only", "ESM-2 only"),
-        ("esm2_comp", "ESM-2 + Composition"),
-        ("pfam_comp", "Pfam + Composition (no ESM-2)"),
-        ("pfam_only", "Pfam only"),
-    ]
-
-    results = []
-    log.info("  %-25s  %-35s  %8s  %8s", "Condition", "Method", "AUROC", "F1")
-    log.info("  " + "-"*80)
-
-    for frac, mode, cond_name in conditions:
-        X_cond = truncate_sequence_features(X_bin, feat_names, None, frac, mode) if frac < 1.0 else X_bin
-        for var_key, var_name in variants:
-            X_var = make_variant(X_cond, var_key)
-            r = ev(X_var, y_bin, var_name, cond_name, frac, mode)
-            results.append(r)
-            log.info("  %-25s  %-35s  %.4f    %.4f",
-                     cond_name, var_name, r["auroc"], r["f1"])
-
-    save_tsv(results, FIG_DIR / "ablation_across_conditions.tsv")
-    json.dump({"task": "D", "results": results},
-              open(BENCH_DIR / "ablation_benchmark.json", "w"), indent=2)
-    log.info("  Saved: ablation_benchmark.json")
-    return results
-
-
-
-def task_d_ablation_across_conditions():
-    """
-    Task D: Full vs ESM-2-only vs Pfam+Comp vs Pfam-rule across
-    fragment conditions. Key paper table.
-    """
-    log.info("══ Task D: Feature Ablation Across Fragment Conditions ══")
-
-    booster_bin = load_booster("binary_v5.json")
-    X_bin, y_bin, _ = load_binary_data()
-    feat_names = load_feat_names("binary")
-    if not booster_bin or not feat_names:
-        return {}
-
-    esm2_idx = [i for i,n in enumerate(feat_names) if n.startswith("esm2_")]
-    pfam_idx = [i for i,n in enumerate(feat_names) if n.startswith("pfam_")]
-    comp_idx = [i for i,n in enumerate(feat_names) if
-                n.startswith("aac_") or n.startswith("dp_") or
-                n.startswith("phys_") or n.startswith("pse_")]
-
-    def make_variant(X, v):
-        Xv = np.zeros_like(X)
-        if v == "full":        return X.copy()
-        if v == "esm2_only":   Xv[:, esm2_idx] = X[:, esm2_idx]
-        elif v == "esm2_comp": Xv[:, esm2_idx] = X[:, esm2_idx]; Xv[:, comp_idx] = X[:, comp_idx]
-        elif v == "pfam_comp": Xv[:, pfam_idx] = X[:, pfam_idx]; Xv[:, comp_idx] = X[:, comp_idx]
-        elif v == "pfam_only": Xv[:, pfam_idx] = X[:, pfam_idx]
-        return Xv
-
-    def ev(X, y, label, cond, frac, mode):
-        from sklearn.metrics import roc_auc_score, f1_score
-        probs = booster_bin.predict(xgb.DMatrix(X))
-        auroc = float(roc_auc_score(y, probs))
-        f1    = float(f1_score(y, (probs>=0.5).astype(int)))
-        return {"condition": cond, "fraction": frac, "method": label,
-                "auroc": round(auroc,4), "f1": round(f1,4)}
-
-    conditions = [
-        (1.00, "full",      "Full sequence"),
-        (0.75, "n_terminal","N-terminal 75%"),
-        (0.50, "n_terminal","N-terminal 50%"),
-        (0.25, "n_terminal","N-terminal 25%"),
-        (0.50, "random",    "Random 50% fragment"),
-    ]
-    variants = [
-        ("full",      "Full CarboDB v5"),
-        ("esm2_only", "ESM-2 only"),
-        ("esm2_comp", "ESM-2 + Composition"),
-        ("pfam_comp", "Pfam + Composition (no ESM-2)"),
-        ("pfam_only", "Pfam only"),
-    ]
-
-    results = []
-    log.info("  %-25s  %-35s  %8s  %8s", "Condition", "Method", "AUROC", "F1")
-    log.info("  " + "-"*80)
-
-    for frac, mode, cond_name in conditions:
-        X_cond = truncate_sequence_features(X_bin, feat_names, None, frac, mode) if frac < 1.0 else X_bin
-        for var_key, var_name in variants:
-            X_var = make_variant(X_cond, var_key)
-            r = ev(X_var, y_bin, var_name, cond_name, frac, mode)
-            results.append(r)
-            log.info("  %-25s  %-35s  %.4f    %.4f",
-                     cond_name, var_name, r["auroc"], r["f1"])
-
-    save_tsv(results, FIG_DIR / "ablation_across_conditions.tsv")
-    json.dump({"task": "D", "results": results},
-              open(BENCH_DIR / "ablation_benchmark.json", "w"), indent=2)
-    log.info("  Saved: ablation_benchmark.json")
-    return results
-
-
-def task_d_ablation_across_conditions():
     log.info("══ Task D: Feature Ablation Across Fragment Conditions ══")
     booster_bin = load_booster("binary_v5.json")
     X_bin, y_bin, _ = load_binary_data()
     feat_names = load_feat_names("binary")
     if not booster_bin or not feat_names:
         return {}
+    from sklearn.metrics import roc_auc_score, f1_score
 
     esm2_idx = [i for i,n in enumerate(feat_names) if n.startswith("esm2_")]
     pfam_idx = [i for i,n in enumerate(feat_names) if n.startswith("pfam_")]
@@ -959,7 +817,6 @@ def task_d_ablation_across_conditions():
         elif v == "pfam_only": Xv[:, pfam_idx] = X[:, pfam_idx]
         return Xv
 
-    from sklearn.metrics import roc_auc_score, f1_score
     def ev(X, y):
         probs = booster_bin.predict(xgb.DMatrix(X))
         return round(float(roc_auc_score(y,probs)),4), round(float(f1_score(y,(probs>=0.5).astype(int))),4)
@@ -970,27 +827,55 @@ def task_d_ablation_across_conditions():
         (0.50, "n_terminal", "N-terminal 50%"),
         (0.25, "n_terminal", "N-terminal 25%"),
         (0.50, "random",     "Random 50% fragment"),
+        (0.25, "random",     "Random 25% fragment"),
     ]
     variants = [
         ("full",      "Full CarboDB v5"),
         ("esm2_only", "ESM-2 only"),
         ("esm2_comp", "ESM-2 + Composition"),
-        ("pfam_comp", "Pfam + Composition"),
+        ("pfam_comp", "Pfam + Composition (no ESM-2)"),
         ("pfam_only", "Pfam only"),
     ]
 
     results = []
-    log.info("  %-25s  %-30s  %8s  %8s", "Condition", "Method", "AUROC", "F1")
-    log.info("  " + "-"*76)
+    log.info("  %-25s  %-35s  %8s  %8s", "Condition", "Method", "AUROC", "F1")
+    log.info("  " + "-"*80)
     for frac, mode, cname in conditions:
         X_cond = truncate_sequence_features(X_bin, feat_names, None, frac, mode) if frac < 1.0 else X_bin
         for vkey, vname in variants:
             auroc, f1 = ev(make_variant(X_cond, vkey), y_bin)
             results.append({"condition": cname, "fraction": frac, "method": vname, "auroc": auroc, "f1": f1})
-            log.info("  %-25s  %-30s  %.4f    %.4f", cname, vname, auroc, f1)
+            log.info("  %-25s  %-35s  %.4f    %.4f", cname, vname, auroc, f1)
 
     save_tsv(results, FIG_DIR / "ablation_across_conditions.tsv")
     json.dump({"task": "D", "results": results}, open(BENCH_DIR / "ablation_benchmark.json", "w"), indent=2)
-    log.info("  Saved: ablation_benchmark.json + ablation_across_conditions.tsv")
+    log.info("  Saved: ablation_benchmark.json")
     return results
 
+
+def main():
+    ap = argparse.ArgumentParser(description='CarboDB v5 robustness benchmarking.')
+    ap.add_argument('--tasks', nargs='+', default=['A','B','C','D'],
+                    choices=['A','A2','B','C','D'])
+    ap.add_argument('--thresholds', nargs='+', type=int, default=[90,70,50,30,20])
+    ap.add_argument('--split-threshold', type=int, default=30)
+    args = ap.parse_args()
+    tasks = set(args.tasks)
+    summary = {}
+
+    if 'A' in tasks:
+        summary['A'] = task_a_identity_benchmark(args.thresholds)
+    if 'A2' in tasks:
+        summary['A2'] = task_a2_build_low_identity_split(args.split_threshold)
+    if 'B' in tasks:
+        summary['B'] = task_b_method_comparison()
+    if 'C' in tasks:
+        summary['C'] = task_c_fragment_benchmark()
+    if 'D' in tasks:
+        summary['D'] = task_d_ablation_across_conditions()
+
+    log.info('Done. Outputs saved to: %s', BENCH_DIR)
+
+
+if __name__ == '__main__':
+    main()
