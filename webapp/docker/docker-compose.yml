@@ -1,0 +1,22 @@
+version: "3.9"
+services:
+  web:
+    build: ..
+    ports:
+      - "80:8080"
+    volumes:
+      - /data/carbodb.sqlite:/app/data/carbodb.sqlite:ro
+      - /data/pfam/Pfam-A.hmm:/app/data/Pfam-A.hmm:ro
+      - /data/jobs:/app/jobs
+    environment:
+      - DB_PATH=/app/data/carbodb.sqlite
+      - PFAM_HMM=/app/data/Pfam-A.hmm
+      - MODELS_DIR=/app/models
+      - JOBS_DIR=/app/jobs
+      - ESM2_DEVICE=cpu
+    mem_limit: 10g
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      interval: 30s
+      start_period: 120s
