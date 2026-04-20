@@ -1,1 +1,566 @@
-<html><body><h1>CarboDB v5</h1><a href='/docs'>API Docs</a></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CarboDB v5</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0d12;--bg2:#111520;--bg3:#181d2a;--border:#1e2535;--border2:#2a3347;--accent:#3b82f6;--accent2:#60a5fa;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;min-height:100vh}
+.shell{display:grid;grid-template-columns:210px 1fr;grid-template-rows:52px 1fr;min-height:100vh}
+.topbar{grid-column:1/-1;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px}
+.logo{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--accent2)}
+.logo span{color:var(--text3);font-weight:400}
+.tagline{font-size:11px;color:var(--text3);border-left:1px solid var(--border2);padding-left:12px}
+.topbar-right{margin-left:auto;display:flex;gap:8px}
+.badge{font-family:var(--mono);font-size:10px;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);padding:3px 8px;border-radius:3px}
+.badge.live{border-color:#22c55e44;color:var(--green)}
+.badge.live::before{content:'● '}
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:16px 0}
+.nav-section{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;padding:8px 16px 4px;margin-top:8px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:7px 16px;font-size:13px;color:var(--text2);cursor:pointer;border-left:2px solid transparent;transition:all 0.15s}
+.nav-item:hover{color:var(--text);background:var(--bg3)}
+.nav-item.active{color:var(--accent2);border-left-color:var(--accent);background:linear-gradient(90deg,#3b82f608,transparent)}
+.main{overflow:auto;padding:28px}
+.view{display:none}.view.active{display:block}
+.page-title{font-size:20px;font-weight:600;letter-spacing:-0.5px;margin-bottom:4px}
+.page-sub{font-size:13px;color:var(--text2);margin-bottom:24px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:18px}
+.card-title{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:14px 16px}
+.stat-val{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--accent2);letter-spacing:-1px}
+.stat-label{font-size:11px;color:var(--text3);margin-top:2px}
+textarea.seq-input{width:100%;background:var(--bg);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:11px;padding:10px;resize:vertical;min-height:140px;outline:none;transition:border-color 0.15s;line-height:1.5}
+textarea.seq-input:focus{border-color:var(--accent)}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+.mode-card{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:10px;cursor:pointer;transition:all 0.15s;position:relative}
+.mode-card.selected{border-color:var(--accent);background:linear-gradient(135deg,#1d4ed808,var(--bg))}
+.mode-card.selected::after{content:'✓';position:absolute;top:6px;right:8px;color:var(--accent2);font-size:11px}
+.mode-name{font-family:var(--mono);font-size:11px;font-weight:600}
+.mode-meta{font-size:10px;color:var(--text3);margin-top:2px}
+.btn{padding:8px 18px;border:none;border-radius:4px;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:500;transition:all 0.15s}
+.btn-primary{background:var(--accent);color:white}.btn-primary:hover{background:var(--accent2)}
+.btn-primary:disabled{background:var(--bg3);color:var(--text3);cursor:not-allowed}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2)}.btn-ghost:hover{border-color:var(--border);color:var(--text)}
+.result-panel{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:18px;min-height:200px}
+.result-empty{text-align:center;padding:40px 20px;color:var(--text3)}
+.loading{display:flex;align-items:center;gap:10px;padding:20px;color:var(--text2);font-family:var(--mono);font-size:12px}
+.spinner{width:14px;height:14px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.result-header{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.result-ec{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--accent2)}
+.novelty-badge{margin-left:auto;padding:3px 8px;border-radius:3px;font-family:var(--mono);font-size:9px;font-weight:600}
+.novelty-badge.known{background:#22c55e18;border:1px solid #22c55e44;color:var(--green)}
+.novelty-badge.borderline{background:#eab30818;border:1px solid #eab30844;color:var(--yellow)}
+.novelty-badge.novel{background:#ef444418;border:1px solid #ef444444;color:var(--red)}
+.km-val{font-family:var(--mono);font-size:32px;font-weight:600;letter-spacing:-1px}
+.km-unit{font-size:13px;color:var(--text3);margin-left:4px}
+.km-sub{font-size:11px;color:var(--text3);margin-top:3px;font-family:var(--mono)}
+.divider{border:none;border-top:1px solid var(--border);margin:12px 0}
+.sim-table{width:100%;border-collapse:collapse;font-size:11px}
+.sim-table th{text-align:left;font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;padding:5px 8px;border-bottom:1px solid var(--border)}
+.sim-table td{padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text2);font-family:var(--mono)}
+.sim-table tr:hover td{background:var(--bg3);color:var(--text)}
+.sim-table td.org{font-family:var(--sans);font-style:italic;color:var(--text)}
+.filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.filter-input{background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 10px;outline:none;transition:border-color 0.15s}
+.filter-input:focus{border-color:var(--accent)}
+.filter-select{background:var(--bg2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 10px;outline:none;cursor:pointer}
+.browse-table{width:100%;border-collapse:collapse;font-size:12px}
+.browse-table th{text-align:left;font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;padding:7px 10px;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0}
+.browse-table td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle}
+.browse-table tr:hover td{background:var(--bg3)}
+.browse-table td.org{font-style:italic;color:var(--text)}
+.browse-table td.ec{font-family:var(--mono);color:var(--accent2)}
+.browse-table td.km{font-family:var(--mono)}
+.km-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px}
+.km-dot.low{background:var(--green)}.km-dot.mid{background:var(--yellow)}.km-dot.high{background:var(--red)}
+.row{display:flex;gap:10px;align-items:center}
+.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}
+.text-mono{font-family:var(--mono)}.text-xs{font-size:11px}.text-muted{color:var(--text3)}
+.text-green{color:var(--green)}.text-accent{color:var(--accent2)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+select option{background:var(--bg2)}
+.error-msg{color:var(--red);font-size:12px;font-family:var(--mono);padding:8px;background:#ef444410;border-radius:4px;border:1px solid #ef444430}
+</style>
+</head>
+<body>
+<div class="shell">
+<div class="topbar">
+  <div class="logo">CarboDB<span>v5</span></div>
+  <div class="tagline">Carboxylase sequence · function · Km database</div>
+  <div class="topbar-right">
+    <div class="badge live" id="badge-status">connecting...</div>
+    <div class="badge" id="badge-seqs">—</div>
+  </div>
+</div>
+
+<div class="sidebar">
+  <div class="nav-section">Analysis</div>
+  <div class="nav-item active" onclick="showView('predict',this)"><span>⬡</span> Predict</div>
+  <div class="nav-item" onclick="showView('batch',this)"><span>⊞</span> Batch</div>
+  <div class="nav-section">Database</div>
+  <div class="nav-item" onclick="showView('browse',this)"><span>◫</span> Browse</div>
+  <div class="nav-section">Info</div>
+  <div class="nav-item" onclick="window.open('/docs','_blank')"><span>{ }</span> API docs ↗</div>
+</div>
+
+<div class="main">
+
+<!-- PREDICT -->
+<div id="view-predict" class="view active">
+  <div class="page-title">Predict Carboxylase Km</div>
+  <div class="page-sub">Submit a protein sequence for EC classification and Km prediction</div>
+  <div class="grid2">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="card">
+        <div class="card-title">Sequence Input</div>
+        <textarea class="seq-input" id="seq-input" placeholder=">my_protein&#10;MSPQTETKASVGFKAGVK...&#10;&#10;FASTA or raw sequence. Max 2000 aa."></textarea>
+        <div class="row mt8">
+          <span class="text-xs text-muted" id="seq-len">0 aa</span>
+          <div style="margin-left:auto;display:flex;gap:6px">
+            <button class="btn btn-ghost text-xs" onclick="loadExample()">Example</button>
+            <button class="btn btn-primary" id="predict-btn" onclick="runPredict()">Predict →</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Mode</div>
+        <div class="mode-grid">
+          <div class="mode-card selected" onclick="selectMode('fast',this)">
+            <div class="mode-name" style="color:var(--yellow)">⚡ Fast</div>
+            <div class="mode-meta">~1s · Composition + Pfam · R²~0.87</div>
+          </div>
+          <div class="mode-card" onclick="selectMode('standard',this)">
+            <div class="mode-name" style="color:var(--accent2)">◈ Standard</div>
+            <div class="mode-meta">~15s · + ESM-2 · R²=0.953</div>
+          </div>
+          <div class="mode-card" onclick="selectMode('pfam',this)">
+            <div class="mode-name" style="color:var(--text2)">◇ Pfam-only</div>
+            <div class="mode-meta">~1s · Domain-based · R²~0.78</div>
+          </div>
+          <div class="mode-card" onclick="selectMode('composite',this)">
+            <div class="mode-name" style="color:var(--green)">✦ Composite</div>
+            <div class="mode-meta">~20s · All modes · Best CI</div>
+          </div>
+        </div>
+        <div class="card-title">Kingdom</div>
+        <select class="filter-select" id="kingdom-select" style="width:100%">
+          <option value="plant" selected>Plant / Algae</option>
+          <option value="bacteria">Bacteria</option>
+          <option value="archaea">Archaea</option>
+          <option value="fungi">Fungi</option>
+        </select>
+      </div>
+    </div>
+    <div class="result-panel" id="result-panel">
+      <div class="result-empty" id="result-empty">
+        <div style="font-size:28px;opacity:0.3;margin-bottom:8px">⬡</div>
+        <div>Submit a sequence to see predictions</div>
+      </div>
+      <div id="result-loading" style="display:none">
+        <div class="loading"><div class="spinner"></div><span id="loading-msg">Loading...</span></div>
+      </div>
+      <div id="result-data" style="display:none">
+        <div class="result-header">
+          <div>
+            <div class="result-ec" id="res-ec">—</div>
+            <div class="text-xs text-muted" id="res-name">—</div>
+          </div>
+          <div class="novelty-badge" id="res-novelty"></div>
+        </div>
+        <div>
+          <span class="km-val" id="res-km">—</span>
+          <span class="km-unit">µM</span>
+        </div>
+        <div class="km-sub" id="res-km-sub"></div>
+        <hr class="divider">
+        <div class="card-title">Most similar in CarboDB</div>
+        <table class="sim-table">
+          <thead><tr><th>Organism</th><th>Km pred (µM)</th><th>Source</th></tr></thead>
+          <tbody id="sim-tbody"></tbody>
+        </table>
+        <div class="row mt8">
+          <button class="btn btn-ghost text-xs" onclick="downloadJSON()">↓ JSON</button>
+          <span class="text-xs text-muted" id="res-runtime"></span>
+        </div>
+      </div>
+      <div id="result-error" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BATCH -->
+<div id="view-batch" class="view">
+  <div class="page-title">Batch Prediction</div>
+  <div class="page-sub">Upload a FASTA file — results returned as TSV download</div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Upload FASTA</div>
+      <div style="border:2px dashed var(--border2);border-radius:4px;padding:32px;text-align:center;cursor:pointer" onclick="document.getElementById('fasta-file').click()">
+        <div style="font-size:24px;opacity:0.4;margin-bottom:8px">⊞</div>
+        <div class="text-xs text-muted">Click to upload .faa / .fasta</div>
+      </div>
+      <input type="file" id="fasta-file" style="display:none" accept=".faa,.fasta,.fa,.txt" onchange="fileSelected(this)">
+      <div id="file-info" class="text-xs text-muted mt8"></div>
+      <div class="mt12">
+        <div class="card-title">Mode</div>
+        <select class="filter-select" id="batch-mode" style="width:100%">
+          <option value="fast">⚡ Fast — up to 5,000 sequences</option>
+          <option value="standard">◈ Standard — up to 500 sequences</option>
+        </select>
+      </div>
+      <div class="mt8">
+        <input class="filter-input" id="batch-email" style="width:100%" placeholder="Email for notification (optional)">
+      </div>
+      <button class="btn btn-primary mt12" style="width:100%" onclick="submitBatch()">Submit batch job →</button>
+      <div id="batch-result" class="mt8"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Job status</div>
+      <div class="filter-bar">
+        <input class="filter-input" id="job-id-input" placeholder="Job ID..." style="width:160px">
+        <button class="btn btn-ghost" onclick="checkJob()">Check status</button>
+      </div>
+      <div id="job-status-display" class="text-xs text-muted">Enter a job ID to check status</div>
+    </div>
+  </div>
+</div>
+
+<!-- BROWSE -->
+<div id="view-browse" class="view">
+  <div class="page-title">Browse Database</div>
+  <div class="page-sub" id="browse-subtitle">Loading database stats...</div>
+  <div class="filter-bar">
+    <input class="filter-input" id="f-organism" placeholder="Organism..." style="width:200px" onkeydown="if(event.key==='Enter')runBrowse()">
+    <select class="filter-select" id="f-ec">
+      <option value="">All EC classes</option>
+      <option value="4.1.1.39">4.1.1.39 — RuBisCO</option>
+      <option value="4.2.1.1">4.2.1.1 — Carbonic anhydrase</option>
+      <option value="4.1.1.49">4.1.1.49 — PEPC</option>
+      <option value="4.1.1.31">4.1.1.31 — PEP carboxylase</option>
+      <option value="6.4.1.1">6.4.1.1 — Pyruvate carboxylase</option>
+      <option value="6.4.1.2">6.4.1.2 — Acetyl-CoA carboxylase</option>
+      <option value="6.4.1.3">6.4.1.3 — Propionyl-CoA carboxylase</option>
+      <option value="6.3.4.14">6.3.4.14 — Biotin carboxylase</option>
+    </select>
+    <input class="filter-input" id="f-km-min" placeholder="Km min (µM)" style="width:110px" type="number">
+    <input class="filter-input" id="f-km-max" placeholder="Km max (µM)" style="width:110px" type="number">
+    <select class="filter-select" id="f-reviewed">
+      <option value="">All sources</option>
+      <option value="true">SwissProt only</option>
+    </select>
+    <button class="btn btn-primary" onclick="runBrowse()">Search</button>
+    <button class="btn btn-ghost" onclick="exportTSV()">↓ Export TSV</button>
+  </div>
+  <div class="card" style="overflow:auto;max-height:60vh">
+    <table class="browse-table">
+      <thead><tr>
+        <th>UniProt ID</th><th>Organism</th><th>EC</th>
+        <th>Pred. Km (µM)</th><th>Length</th><th>Source</th><th></th>
+      </tr></thead>
+      <tbody id="browse-tbody"><tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px">Use filters above to search</td></tr></tbody>
+    </table>
+  </div>
+  <div class="row mt8">
+    <span class="text-xs text-muted" id="browse-count"></span>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn btn-ghost text-xs" id="prev-btn" onclick="browsePage(-1)">← Prev</button>
+      <button class="btn btn-ghost text-xs" id="next-btn" onclick="browsePage(1)">Next →</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+const API = '';  // same origin
+let currentMode = 'fast';
+let lastResult = null;
+let browseOffset = 0;
+const BROWSE_LIMIT = 50;
+
+// ── Init ──────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const r = await fetch(API + '/api/v1/health');
+    const d = await r.json();
+    document.getElementById('badge-status').textContent = d.models_loaded ? 'live' : 'loading';
+  } catch(e) {
+    document.getElementById('badge-status').textContent = 'offline';
+    document.getElementById('badge-status').style.color = 'var(--red)';
+  }
+  try {
+    const r = await fetch(API + '/api/v1/stats');
+    const d = await r.json();
+    document.getElementById('badge-seqs').textContent = (d.total_sequences/1e6).toFixed(2) + 'M sequences';
+    document.getElementById('browse-subtitle').textContent =
+      d.total_sequences.toLocaleString() + ' sequences · ' +
+      d.reviewed + ' SwissProt reviewed · ' +
+      Object.keys(d.ec_distribution || {}).length + ' EC classes';
+  } catch(e) {}
+}
+init();
+
+// ── Navigation ────────────────────────────────────────────────────────────
+function showView(id, el) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  if(el) el.classList.add('active');
+}
+
+// ── Predict ───────────────────────────────────────────────────────────────
+document.getElementById('seq-input').addEventListener('input', function() {
+  const seq = this.value.replace(/^>.*$/gm,'').replace(/\s/g,'');
+  document.getElementById('seq-len').textContent = seq.length + ' aa';
+});
+
+function selectMode(mode, el) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function loadExample() {
+  document.getElementById('seq-input').value =
+    '>RuBisCO_spinach_P00875\nMSPQTETKASVGFKAGVKDYKFGRSVNFDWSGSLQFKAGTDNDTIKVAGVSNRQALRHLPFLEESSGTIKYKQTYVPNLFESTVGSGLKFPINARSGEPMKFGGVAKFGGVELDGEGTFGLDVEVKEGEAFYRSKEREQWGVFLNDALQARKMEDSYFEQQFAEVDDWINTEVFSAFNQLQS';
+  document.getElementById('seq-len').textContent = '475 aa';
+}
+
+async function runPredict() {
+  const seq = document.getElementById('seq-input').value.trim();
+  if (!seq) return;
+  const btn = document.getElementById('predict-btn');
+  btn.disabled = true;
+  document.getElementById('result-empty').style.display = 'none';
+  document.getElementById('result-data').style.display = 'none';
+  document.getElementById('result-error').style.display = 'none';
+  document.getElementById('result-loading').style.display = 'block';
+
+  const msgs = {
+    fast: ['Computing features...','Running HMMER...','Predicting...'],
+    standard: ['Computing features...','Running HMMER...','Loading ESM-2 (~15s)...','Predicting...'],
+    pfam: ['Running HMMER...','Predicting...'],
+    composite: ['Running all modes...','Computing ensemble...']
+  };
+  let mi = 0;
+  const steps = msgs[currentMode] || msgs.fast;
+  const iv = setInterval(() => {
+    if(mi < steps.length) document.getElementById('loading-msg').textContent = steps[mi++];
+  }, 3000);
+
+  try {
+    const resp = await fetch(API + '/api/v1/predict', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        sequence: seq,
+        mode: currentMode,
+        kingdom: document.getElementById('kingdom-select').value
+      })
+    });
+    clearInterval(iv);
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.detail || 'Prediction failed');
+    }
+    const d = await resp.json();
+    lastResult = d;
+    showResult(d);
+  } catch(e) {
+    clearInterval(iv);
+    document.getElementById('result-loading').style.display = 'none';
+    document.getElementById('result-error').style.display = 'block';
+    document.getElementById('result-error').innerHTML =
+      '<div class="error-msg">Error: ' + e.message + '</div>';
+  }
+  btn.disabled = false;
+}
+
+function showResult(d) {
+  document.getElementById('result-loading').style.display = 'none';
+  document.getElementById('result-data').style.display = 'block';
+
+  document.getElementById('res-ec').textContent = d.ec_predicted || '—';
+  document.getElementById('res-name').textContent = d.ec_name || '';
+
+  const novelty = d.novelty_flag || 'novel';
+  const nb = document.getElementById('res-novelty');
+  nb.className = 'novelty-badge ' + novelty;
+  nb.textContent = {known:'● KNOWN', borderline:'◐ BORDERLINE', novel:'○ NOVEL'}[novelty] || novelty;
+
+  if (d.km_predicted_uM != null) {
+    document.getElementById('res-km').textContent = d.km_predicted_uM.toFixed(1);
+    document.getElementById('res-km-sub').textContent =
+      'Predicted Km for CO₂  ·  binary prob: ' + d.carboxylase_probability.toFixed(3) +
+      '  ·  EC conf: ' + d.ec_confidence.toFixed(3);
+  } else {
+    document.getElementById('res-km').textContent = 'N/A';
+    document.getElementById('res-km-sub').textContent =
+      d.is_carboxylase
+        ? 'Km model not available for ' + d.ec_predicted
+        : 'Not classified as carboxylase (prob=' + d.carboxylase_probability.toFixed(3) + ')';
+  }
+
+  // Similar sequences
+  const tbody = document.getElementById('sim-tbody');
+  const sims = d.top_similar || [];
+  if (sims.length > 0) {
+    tbody.innerHTML = sims.map(s =>
+      '<tr><td class="org">' + (s.organism || '—') + '</td>' +
+      '<td>' + (s.km_predicted_uM != null ? s.km_predicted_uM.toFixed(1) : '—') + '</td>' +
+      '<td>' + (s.reviewed ? 'SwissProt' : 'TrEMBL') + '</td></tr>'
+    ).join('');
+  } else {
+    tbody.innerHTML = '<tr><td colspan="3" style="color:var(--text3)">No similar sequences found</td></tr>';
+  }
+
+  document.getElementById('res-runtime').textContent = d.runtime_seconds + 's · ' + d.mode + ' mode';
+}
+
+function downloadJSON() {
+  if (!lastResult) return;
+  const blob = new Blob([JSON.stringify(lastResult, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'carbodb_prediction.json';
+  a.click();
+}
+
+// ── Batch ─────────────────────────────────────────────────────────────────
+function fileSelected(input) {
+  if (input.files[0]) {
+    document.getElementById('file-info').textContent =
+      '✓ ' + input.files[0].name + ' (' + (input.files[0].size/1024).toFixed(0) + ' KB)';
+  }
+}
+
+async function submitBatch() {
+  const file = document.getElementById('fasta-file').files[0];
+  if (!file) { alert('Please select a FASTA file first'); return; }
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('mode', document.getElementById('batch-mode').value);
+  fd.append('email', document.getElementById('batch-email').value);
+  try {
+    const resp = await fetch(API + '/api/v1/batch', {method:'POST', body:fd});
+    const d = await resp.json();
+    if (!resp.ok) throw new Error(d.detail || 'Failed');
+    document.getElementById('batch-result').innerHTML =
+      '<div style="color:var(--green);font-size:12px">✓ Job submitted: ' + d.job_id +
+      ' (' + d.n_sequences + ' sequences, ~' + d.estimated_minutes + ' min)</div>';
+    document.getElementById('job-id-input').value = d.job_id;
+  } catch(e) {
+    document.getElementById('batch-result').innerHTML =
+      '<div class="error-msg">' + e.message + '</div>';
+  }
+}
+
+async function checkJob() {
+  const id = document.getElementById('job-id-input').value.trim();
+  if (!id) return;
+  try {
+    const resp = await fetch(API + '/api/v1/jobs/' + id);
+    const d = await resp.json();
+    if (!resp.ok) throw new Error(d.detail || 'Not found');
+    const statusColors = {queued:'var(--text3)',running:'var(--accent2)',completed:'var(--green)',failed:'var(--red)'};
+    let html = '<div style="color:' + (statusColors[d.status]||'var(--text2)') + ';font-family:var(--mono);font-size:12px">' +
+      '● ' + d.status.toUpperCase() + ' — ' + d.processed + '/' + d.n_sequences + ' sequences';
+    if (d.status === 'completed') {
+      html += ' <a href="/api/v1/jobs/' + id + '/results.tsv" style="color:var(--accent2);margin-left:8px">↓ Download TSV</a>';
+    }
+    html += '</div>';
+    document.getElementById('job-status-display').innerHTML = html;
+  } catch(e) {
+    document.getElementById('job-status-display').innerHTML =
+      '<div class="error-msg">' + e.message + '</div>';
+  }
+}
+
+// ── Browse ────────────────────────────────────────────────────────────────
+let browseTotal = 0;
+
+async function runBrowse(resetOffset=true) {
+  if (resetOffset) browseOffset = 0;
+  const params = new URLSearchParams();
+  const org = document.getElementById('f-organism').value.trim();
+  const ec = document.getElementById('f-ec').value;
+  const kmin = document.getElementById('f-km-min').value;
+  const kmax = document.getElementById('f-km-max').value;
+  const rev = document.getElementById('f-reviewed').value;
+  if (org) params.set('organism', org);
+  if (ec) params.set('ec', ec);
+  if (kmin) params.set('km_min', kmin);
+  if (kmax) params.set('km_max', kmax);
+  if (rev) params.set('reviewed', rev);
+  params.set('limit', BROWSE_LIMIT);
+  params.set('offset', browseOffset);
+
+  const tbody = document.getElementById('browse-tbody');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:16px">Loading...</td></tr>';
+
+  try {
+    const resp = await fetch(API + '/api/v1/browse?' + params);
+    const d = await resp.json();
+    browseTotal = d.total || 0;
+    document.getElementById('browse-count').textContent =
+      browseTotal.toLocaleString() + ' results · page ' +
+      (Math.floor(browseOffset/BROWSE_LIMIT)+1) + ' of ' +
+      Math.max(1, Math.ceil(browseTotal/BROWSE_LIMIT));
+
+    if (!d.results || d.results.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px">No results found</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = d.results.map(r => {
+      const km = r.km_uM;
+      const dot = km < 10 ? 'low' : km < 100 ? 'mid' : 'high';
+      return '<tr>' +
+        '<td class="text-mono text-accent" style="font-size:11px">' + (r.uniprot_id||'—') + '</td>' +
+        '<td class="org" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (r.organism||'—') + '</td>' +
+        '<td class="ec">' + (r.ec_number||'—') + '</td>' +
+        '<td class="km"><span class="km-dot ' + dot + '"></span>' + (km ? km.toFixed(1) : '—') + '</td>' +
+        '<td class="text-muted" style="font-size:11px">' + (r.length||'—') + ' aa</td>' +
+        '<td class="text-muted" style="font-size:11px">' + (r.source||'—') + '</td>' +
+        '<td><span style="cursor:pointer;color:var(--accent2);font-size:11px" onclick="predictFromBrowse(\'' + r.uniprot_id + '\')">→ Use</span></td>' +
+        '</tr>';
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="7" class="error-msg">' + e.message + '</td></tr>';
+  }
+}
+
+function browsePage(dir) {
+  browseOffset = Math.max(0, browseOffset + dir * BROWSE_LIMIT);
+  if (browseOffset >= browseTotal) browseOffset = Math.max(0, browseTotal - BROWSE_LIMIT);
+  runBrowse(false);
+}
+
+function predictFromBrowse(uid) {
+  // Switch to predict view and pre-fill with UniProt ID as note
+  document.getElementById('seq-input').value = '>' + uid + '\n# Fetch sequence from UniProt and paste here';
+  showView('predict', document.querySelectorAll('.nav-item')[0]);
+}
+
+function exportTSV() {
+  const params = new URLSearchParams();
+  const org = document.getElementById('f-organism').value.trim();
+  const ec = document.getElementById('f-ec').value;
+  if (org) params.set('organism', org);
+  if (ec) params.set('ec', ec);
+  params.set('limit', 500);
+  params.set('offset', 0);
+  window.open(API + '/api/v1/browse?' + params + '&format=tsv');
+}
+</script>
+</body>
+</html>
