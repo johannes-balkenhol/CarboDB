@@ -44,7 +44,8 @@ def predict_sequence(sequence, mode="fast", kingdom="plant", seq_id="query"):
         if result.returncode != 0:
             raise ValueError(result.stderr.decode()[:500])
 
-        d = json.load(open(out_path))
+        raw = json.load(open(out_path))
+        d = raw[0] if isinstance(raw, list) else raw
 
         # Normalise output to webapp format
         return {
