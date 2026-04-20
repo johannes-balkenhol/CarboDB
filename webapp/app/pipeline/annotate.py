@@ -94,6 +94,59 @@ KM_TRAINABLE_EC = [
 CARBOXY_PFAM_LIST = sorted(CFG.CARBOXY_PFAM)
 
 # InterPro feature columns (must match training)
+# SHAP lookup tables (loaded once, served per-request)
+_SHAP_CACHE = {}
+
+
+def _load_shap(filename: str) -> dict:
+    """Lazy-load and cache one of the SHAP JSON files from data/shap/."""
+    if filename in _SHAP_CACHE:
+        return _SHAP_CACHE[filename]
+    shap_path = ROOT / "data" / "shap" / filename
+    if not shap_path.exists():
+        log.warning("SHAP file missing: %s", shap_path)
+        _SHAP_CACHE[filename] = {}
+        return {}
+    try:
+        _SHAP_CACHE[filename] = json.load(open(shap_path))
+    except Exception as e:
+        log.warning("Failed to load SHAP file %s: %s", shap_path, e)
+        _SHAP_CACHE[filename] = {}
+    return _SHAP_CACHE[filename]
+
+
+def _shap_features_for(ec: str, top_n: int = 10) -> dict:
+    """Return top SHAP features for the predicted EC class."""
+    out = {
+        "ec_classification": [],
+        "km_regression":     [],
+        "binary_global":     [],
+    }
+
+    ec_shap = _load_shap("shap_ec_per_class.json")
+    pc = ec_shap.get("per_class", {}).get(ec, {})
+    feats = pc.get("top_features_true_pos") or pc.get("top_features_global") or []
+    out["ec_classification"] = feats[:top_n] if isinstance(feats, list) else []
+    out["ec_group_importance"] = pc.get("group_importance", {})
+
+    km_shap = _load_shap("shap_km_per_ec.json")
+    pe = km_shap.get("per_ec", {}).get(ec, {})
+    km_feats = pe.get("top_features", [])
+    out["km_regression"] = km_feats[:top_n] if isinstance(km_feats, list) else []
+    out["km_group_importance"] = pe.get("group_importance", {})
+    out["km_training_stats"] = {
+        "n_samples":      pe.get("n_samples"),
+        "km_mean_log10":  pe.get("km_mean_log10"),
+        "km_std_log10":   pe.get("km_std_log10"),
+    }
+
+    bin_shap = _load_shap("shap_binary_global.json")
+    out["binary_global"] = bin_shap.get("top_carboxylases", [])[:top_n]
+    out["binary_group_importance"] = bin_shap.get("group_importance", {})
+
+    return out
+
+
 INTERPRO_COLS = ["n_pfam_hits", "n_panther_hits", "n_tigrfam_hits",
                  "n_cath_hits", "n_superfamily_hits"]
 
@@ -319,7 +372,12 @@ def run_hmmer_pfam(seq_id: str, seq: str, tmp_dir: Path) -> dict:
                 evalue   = float(parts[12])
                 if evalue > CFG.HMMER_EVALUE:
                     continue
-                pfam_hits.append(pfam_acc)
+                pfam_hits.append({
+                    "accession": pfam_acc,
+                    "name":      parts[0] if len(parts) > 0 else pfam_acc,
+                    "e_value":   evalue,
+                    "bitscore":  float(parts[13]) if len(parts) > 13 else None,
+                })
                 feats["pfam_n_hits"] += 1
                 if pfam_acc in CFG.CARBOXY_PFAM:
                     feats[f"pfam_{pfam_acc}"] = 1
@@ -329,7 +387,13 @@ def run_hmmer_pfam(seq_id: str, seq: str, tmp_dir: Path) -> dict:
     except FileNotFoundError:
         log.warning("hmmscan not found in PATH — skipping Pfam features")
 
-    return feats, list(set(pfam_hits))
+    # Deduplicate by accession, keeping best (lowest) e-value per accession
+    by_acc = {}
+    for h in pfam_hits:
+        acc = h["accession"]
+        if acc not in by_acc or (h["e_value"] or 1e99) < (by_acc[acc]["e_value"] or 1e99):
+            by_acc[acc] = h
+    return feats, list(by_acc.values())
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -610,7 +674,9 @@ def annotate_sequence(seq_id: str,
         result["features_used"].append("pfam")
 
         # Step 3: InterPro
-        interpro_feats = compute_interpro_features(pfam_hits)
+        interpro_feats = compute_interpro_features(
+            [h["accession"] if isinstance(h, dict) else h for h in pfam_hits]
+        )
         result["features_used"].append("interpro")
 
         # Step 4: ESM-2
@@ -673,6 +739,22 @@ def annotate_sequence(seq_id: str,
                 result["warnings"].append(
                     f"Km prediction not available for EC {ec_for_km} "
                     f"(not in trainable set: {KM_TRAINABLE_EC})")
+
+    # Enrich output: phys/motif/catalytic-core scalars (skip 400 dipeptides + 20 AAC)
+    UI_FEATURE_PREFIXES = ("phys_", "motif_", "inv_")
+    result["features_computed"] = {
+        k: round(float(v), 6) if isinstance(v, (int, float)) else v
+        for k, v in comp_feats.items()
+        if k.startswith(UI_FEATURE_PREFIXES)
+    }
+
+    # Enrich output: SHAP explanations for predicted EC class
+    if result.get("ec_predicted"):
+        try:
+            result["shap"] = _shap_features_for(result["ec_predicted"])
+        except Exception as e:
+            log.warning("SHAP lookup failed: %s", e)
+            result["warnings"].append(f"SHAP lookup failed: {e}")
 
     result["runtime_seconds"] = round(time.time() - t0, 2)
     return result
