@@ -7,13 +7,15 @@ from ..startup import ModelStore, EC_NAMES, KM_EC_CLASSES
 
 log = logging.getLogger(__name__)
 
-SCRIPT_11 = Path(__file__).resolve()
+# Use local copy of annotation script (standalone, no CarboDB repo needed)
+_local = Path(__file__).parent / "annotate.py"
+_parent_scripts = Path(__file__).resolve()
 for _ in range(6):
-    SCRIPT_11 = SCRIPT_11.parent
-    candidate = SCRIPT_11 / "scripts" / "11_annotate_sequence.py"
+    _parent_scripts = _parent_scripts.parent
+    candidate = _parent_scripts / "scripts" / "11_annotate_sequence.py"
     if candidate.exists():
-        SCRIPT_11 = candidate
         break
+SCRIPT_11 = _local if _local.exists() else candidate
 
 
 def predict_sequence(sequence, mode="fast", kingdom="plant", seq_id="query"):
