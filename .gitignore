@@ -15,3 +15,19 @@ credentials.json
 data/primary/
 data/
 *.bak
+
+# BLAST DB artifacts (reproducible via webapp/scripts/build_ec_blast_dbs*.py)
+data/blast_ec_dbs/raw/*.fa
+data/blast_ec_dbs/clustered/*.fa
+data/blast_ec_dbs/clustered/*.clstr
+data/blast_ec_dbs/clustered/*.p*
+data/blast_ec_dbs_exp/*.fa
+data/blast_ec_dbs_exp/*.p*
+
+# BLAST DB artifacts (reproducible via webapp/scripts/build_ec_blast_dbs*.py)
+data/blast_ec_dbs/raw/*.fa
+data/blast_ec_dbs/clustered/*.fa
+data/blast_ec_dbs/clustered/*.clstr
+data/blast_ec_dbs/clustered/*.p*
+data/blast_ec_dbs_exp/*.fa
+data/blast_ec_dbs_exp/*.p*
