@@ -114,7 +114,13 @@ def run_batch_job(job_id: str, input_path: str, mode: str, kingdom: str):
                 try:
                     r = predict_sequence(sequence, mode=mode,
                                         kingdom=kingdom, seq_id=seq_id)
-                    pfam_str = ';'.join(r.get('pfam_hits', []))
+                    # pfam_hits is now list[dict] with {accession, name, e_value, bitscore}.
+                    # Collapse to accessions-only for the TSV (rich data lives in single-predict).
+                    _hits = r.get('pfam_hits', []) or []
+                    pfam_str = ';'.join(
+                        h.get('accession', '') if isinstance(h, dict) else str(h)
+                        for h in _hits
+                    )
                     fout.write(
                         f"{seq_id}\t{r['sequence_length']}\t"
                         f"{r['is_carboxylase']}\t{r['carboxylase_probability']:.4f}\t"
