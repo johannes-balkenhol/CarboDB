@@ -7,6 +7,7 @@ from typing import Optional
 import sqlite3, os, json
 
 from ..pipeline.predict import predict_sequence
+from ..pipeline.blast_similar import run_blast_similar
 from ..startup import ModelStore
 
 router = APIRouter(tags=["predict"])
@@ -33,10 +34,22 @@ def predict(req: PredictRequest):
             kingdom=req.kingdom,
             seq_id=req.seq_id or "query"
         )
-        # Add similar sequences from DB
+        # Add similar sequences via BLAST against experimental-Km DB.
+        # Returns top-3 neighbors with real experimental Km values for
+        # the details panel. Empty list if EC has no experimental data
+        # or the user's sequence doesn't BLAST-match any of them.
         if result.get('ec_predicted') and result.get('is_carboxylase'):
-            result['top_similar'] = get_similar_from_db(
-                result['ec_predicted'], result.get('km_predicted_uM'))
+            try:
+                result['top_similar'] = run_blast_similar(
+                    sequence=req.sequence,
+                    ec_predicted=result['ec_predicted'],
+                    limit=3,
+                    manifest_path="data/blast_ec_dbs_exp/manifest.json",
+                )
+            except Exception as exc:
+                # Neighbor lookup is non-critical; log and continue
+                print(f"BLAST similar failed: {exc}")
+                result['top_similar'] = []
         else:
             result['top_similar'] = []
         return result

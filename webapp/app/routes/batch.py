@@ -80,6 +80,7 @@ def download_results(job_id: str):
 
 def run_batch_job(job_id: str, input_path: str, mode: str, kingdom: str):
     from ..pipeline.predict import predict_sequence
+    from ..pipeline.blast_similar import run_blast_similar
     job_dir = os.path.join(JOBS_DIR, job_id)
     meta_path = os.path.join(job_dir, "job.json")
 
@@ -92,7 +93,7 @@ def run_batch_job(job_id: str, input_path: str, mode: str, kingdom: str):
 
     update_meta({"status": "running", "started_at": datetime.utcnow().isoformat()})
     result_path = os.path.join(job_dir, "results.tsv")
-    header = "seq_id\tlength\tis_carboxylase\tprob_binary\tec_predicted\tec_confidence\tkm_predicted_mM\tkm_predicted_uM\tpfam_hits\tnovelty_flag\truntime_seconds\n"
+    header = ("seq_id\tlength\tis_carboxylase\tprob_binary\tec_predicted\tec_confidence\t" "km_predicted_mM\tkm_predicted_uM\tpfam_hits\tnovelty_flag\truntime_seconds\t" "nearest_uniprot\tnearest_pident\tnearest_organism\tnearest_km_exp_uM\tnearest_tier\n")
     processed = 0
     try:
         with open(input_path) as fin, open(result_path, 'w') as fout:
@@ -121,14 +122,36 @@ def run_batch_job(job_id: str, input_path: str, mode: str, kingdom: str):
                         h.get('accession', '') if isinstance(h, dict) else str(h)
                         for h in _hits
                     )
+                    # Nearest-neighbor via BLAST against experimental-Km DB (top 1 only)
+                    nn_uid = nn_pident = nn_org = nn_km = nn_tier = ''
+                    if r.get('ec_predicted') and r.get('is_carboxylase'):
+                        try:
+                            nn = run_blast_similar(
+                                sequence=sequence,
+                                ec_predicted=r['ec_predicted'],
+                                limit=1,
+                                manifest_path="data/blast_ec_dbs_exp/manifest.json",
+                            )
+                            if nn:
+                                h0 = nn[0]
+                                nn_uid = h0.get('uniprot_id', '') or ''
+                                nn_pident = f"{h0.get('identity_pct', ''):.1f}" if h0.get('identity_pct') is not None else ''
+                                nn_org = (h0.get('organism') or '').replace('\t', ' ')
+                                nn_km = h0.get('km_experimental_uM')
+                                nn_km = f"{nn_km:.2f}" if nn_km is not None else ''
+                                nn_tier = h0.get('tier', '') or ''
+                        except Exception as exc:
+                            print(f"BLAST failed for {seq_id}: {exc}")
+                    km_mM_str = f"{r['km_predicted_mM']:.4f}" if r.get('km_predicted_mM') is not None else ''
+                    km_uM_str = f"{r['km_predicted_uM']:.2f}" if r.get('km_predicted_uM') is not None else ''
                     fout.write(
                         f"{seq_id}\t{r['sequence_length']}\t"
                         f"{r['is_carboxylase']}\t{r['carboxylase_probability']:.4f}\t"
                         f"{r['ec_predicted']}\t{r['ec_confidence']:.4f}\t"
-                        f"{r.get('km_predicted_mM') or ''}\t"
-                        f"{r.get('km_predicted_uM') or ''}\t"
+                        f"{km_mM_str}\t{km_uM_str}\t"
                         f"{pfam_str}\t{r.get('novelty_flag','')}\t"
-                        f"{r.get('runtime_seconds','')}\n"
+                        f"{r.get('runtime_seconds','')}\t"
+                        f"{nn_uid}\t{nn_pident}\t{nn_org}\t{nn_km}\t{nn_tier}\n"
                     )
                     fout.flush()
                 except Exception as e:
