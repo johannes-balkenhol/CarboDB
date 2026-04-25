@@ -1,0 +1,4 @@
+seq_id	length	is_carboxylase	prob_binary	ec_predicted	ec_confidence	km_predicted_mM	km_predicted_uM	pfam_hits	novelty_flag	runtime_seconds
+rubisco_spinach	0	ERROR								sequence item 0: expected str instance, dict found
+ca_human	0	ERROR								sequence item 0: expected str instance, dict found
+pepc_short	143	True	0.9993	4.2.1.1	0.9810	12.8713	12871.3		borderline	5.32

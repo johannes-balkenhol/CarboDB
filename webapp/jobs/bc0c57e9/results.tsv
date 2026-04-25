@@ -1,0 +1,4 @@
+seq_id	length	is_carboxylase	prob_binary	ec_predicted	ec_confidence	km_predicted_mM	km_predicted_uM	pfam_hits	novelty_flag	runtime_seconds	nearest_uniprot	nearest_pident	nearest_organism	nearest_km_exp_uM	nearest_tier
+rubisco_spinach	475	True	1.0000	4.1.1.39	0.9998	0.0054	5.40	PF00016;PF02788	known	5.51	A0A1C3HPQ9	96.1	Manihot esculenta	10.30	brenda_experimental
+ca_human	261	True	1.0000	4.2.1.1	0.9968	9.1010	9101.00	PF00194	known	5.11	V9HW21	84.6	Homo sapiens	12.00	brenda_experimental
+pepc_short	61	True	0.9996	4.2.1.1	0.9707	6.8016	6801.60		borderline	5.24					

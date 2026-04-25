@@ -147,8 +147,7 @@ def _shap_features_for(ec: str, top_n: int = 10) -> dict:
     return out
 
 
-INTERPRO_COLS = ["n_pfam_hits", "n_panther_hits", "n_tigrfam_hits",
-                 "n_cath_hits", "n_superfamily_hits"]
+INTERPRO_COLS = ["n_panther", "n_gene3d", "n_tigrfam", "n_prosite_prof", "n_prosite_pat"]
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -208,115 +207,21 @@ def validate_sequence(seq_id: str, seq: str) -> list:
 
 def compute_composition(seq: str) -> dict:
     """
-    Compute the same 489-dim composition vector used in training:
-      - 20 AAC (amino acid composition)
-      - 400 dipeptide composition
-      - 20 pseudo-AAC (λ=1 correlation)
-      - 20 physicochemical (hydrophobicity, charge, MW proxies)
-      - 7 structural / global
-      - 5 catalytic core motifs (inv_ features)
-      - 17 EC motif hits (motif_ features) — set to 0 for unknown query
-
-    Returns dict: feature_name → float
+    Delegates to scripts/04a_composition.extract_all() to guarantee
+    feature names and formulas match the training-time pipeline exactly.
+    Returns ~489 features: 20 aac + 400 dp + 30 pse + 15 phys + 17 inv + 7 motif.
+    (The cdb_id key in extract_all's output is dropped.)
     """
-    seq = "".join(c for c in seq.upper() if c in CFG.SEQ_VALID_AA)
-    n = len(seq)
-    if n == 0:
-        return {}
-
-    feats = {}
-
-    # ── AAC ───────────────────────────────────────────────────────────────────
-    for aa in AMINO_ACIDS:
-        feats[f"aac_{aa}"] = seq.count(aa) / n
-
-    # ── Dipeptide ─────────────────────────────────────────────────────────────
-    dp_counts = {}
-    for i in range(n - 1):
-        dp = seq[i:i+2]
-        if all(c in CFG.SEQ_VALID_AA for c in dp):
-            dp_counts[dp] = dp_counts.get(dp, 0) + 1
-    total_dp = max(1, n - 1)
-    for a1 in AMINO_ACIDS:
-        for a2 in AMINO_ACIDS:
-            dp = a1 + a2
-            feats[f"dp_{dp}"] = dp_counts.get(dp, 0) / total_dp
-
-    # ── Pseudo-AAC (λ=1 sequence-order correlation) ───────────────────────────
-    # Hydrophobicity scale (Kyte-Doolittle)
-    kd = {"A":1.8,"R":-4.5,"N":-3.5,"D":-3.5,"C":2.5,"Q":-3.5,"E":-3.5,
-          "G":-0.4,"H":-3.2,"I":4.5,"L":3.8,"K":-3.9,"M":1.9,"F":2.8,
-          "P":-1.6,"S":-0.8,"T":-0.7,"W":-0.9,"Y":-1.3,"V":4.2}
-    if n > 1:
-        corr = sum(kd.get(seq[i], 0) * kd.get(seq[i+1], 0)
-                   for i in range(n-1)) / (n - 1)
-    else:
-        corr = 0.0
-    for aa in AMINO_ACIDS:
-        feats[f"pse_{aa}"] = feats[f"aac_{aa}"] / (1 + corr) if (1 + corr) != 0 else 0.0
-
-    # ── Physicochemical ───────────────────────────────────────────────────────
-    charged_pos = set("RKH")
-    charged_neg = set("DE")
-    aliphatic    = set("AVILM")
-    aromatic     = set("FYW")
-    polar        = set("STNQ")
-    tiny         = set("AGCS")
-    mw_approx = {"A":89,"R":174,"N":132,"D":133,"C":121,"Q":146,"E":147,
-                 "G":75,"H":155,"I":131,"L":131,"K":128,"M":149,"F":165,
-                 "P":115,"S":105,"T":119,"W":204,"Y":181,"V":117}
-
-    feats["phys_charge_pos"]  = sum(seq.count(aa) for aa in charged_pos) / n
-    feats["phys_charge_neg"]  = sum(seq.count(aa) for aa in charged_neg) / n
-    feats["phys_net_charge"]  = feats["phys_charge_pos"] - feats["phys_charge_neg"]
-    feats["phys_aliphatic"]   = sum(seq.count(aa) for aa in aliphatic) / n
-    feats["phys_aromatic"]    = sum(seq.count(aa) for aa in aromatic) / n
-    feats["phys_polar"]       = sum(seq.count(aa) for aa in polar) / n
-    feats["phys_tiny"]        = sum(seq.count(aa) for aa in tiny) / n
-    feats["phys_hydrophob"]   = sum(kd.get(aa, 0) * seq.count(aa)
-                                    for aa in AMINO_ACIDS) / n
-    feats["phys_mw_norm"]     = sum(mw_approx.get(aa, 110) * seq.count(aa)
-                                    for aa in AMINO_ACIDS) / (n * 150)
-    feats["phys_length"]      = np.log10(n)
-    feats["phys_length_raw"]  = float(n)
-    # Repeat composition (low complexity indicator)
-    feats["phys_max_repeat"]  = max(seq.count(aa) for aa in AMINO_ACIDS) / n
-
-    # Cys ratio (disulfide potential)
-    feats["phys_cys_ratio"]   = seq.count("C") / n
-    # Pro ratio (structural rigidity)
-    feats["phys_pro_ratio"]   = seq.count("P") / n
-    # Gly ratio (flexibility)
-    feats["phys_gly_ratio"]   = seq.count("G") / n
-    # His ratio (metal binding)
-    feats["phys_his_ratio"]   = seq.count("H") / n
-    # Asp+Glu (acidic)
-    feats["phys_acidic"]      = (seq.count("D") + seq.count("E")) / n
-    # Lys+Arg (basic, non-His)
-    feats["phys_basic"]       = (seq.count("K") + seq.count("R")) / n
-    # Instability index proxy
-    feats["phys_instability"]  = (feats["phys_charge_pos"] +
-                                  feats["phys_aromatic"]) / max(feats["phys_polar"] + 0.01, 0.01)
-
-    # ── Catalytic core motifs (inv_ features) ─────────────────────────────────
-    # Biotin-binding AMKM motif
-    feats["inv_amkm"]  = 1.0 if "AMKM" in seq else 0.0
-    # RuBisCO large subunit signature
-    feats["inv_rubisco_sig"] = 1.0 if any(m in seq for m in ["GHYLNATAGTCE", "RIKFGETP"]) else 0.0
-    # Phosphoenolpyruvate carboxylase signature
-    feats["inv_pepc_sig"] = 1.0 if "QNTG" in seq else 0.0
-    # Carbonic anhydrase zinc-binding
-    feats["inv_ca_zinc"] = 1.0 if seq.count("H") >= 3 and n < 400 else 0.0
-    # Generic ATP-grasp (biotin-dependent carboxylases)
-    feats["inv_atp_grasp"] = 1.0 if any(m in seq for m in ["GRGREA", "GRGREP"]) else 0.0
-
-    # ── EC motif placeholders (set 0 — unknown at query time) ─────────────────
-    # These 17 features exist in the training matrix; we set 0 for new queries.
-    for ec_short in ["4111", "4211", "6341", "6316", "6355", "6341b",
-                     "4114", "6333", "4113", "41112", "4113b", "6411",
-                     "6412", "6413", "6414", "4113c", "41149"]:
-        feats[f"motif_{ec_short}"] = 0.0
-
+    import importlib.util
+    from pathlib import Path as _P
+    _path = ROOT / "scripts" / "04a_composition.py"
+    if not hasattr(compute_composition, "_m"):
+        _spec = importlib.util.spec_from_file_location("_c04a", _path)
+        _m = importlib.util.module_from_spec(_spec)
+        _spec.loader.exec_module(_m)
+        compute_composition._m = _m
+    feats = compute_composition._m.extract_all("query", seq)
+    feats.pop("cdb_id", None)
     return feats
 
 
@@ -400,6 +305,82 @@ def run_hmmer_pfam(seq_id: str, seq: str, tmp_dir: Path) -> dict:
 # 4. InterPro features (simplified: count hits per database)
 # ══════════════════════════════════════════════════════════════════════════════
 
+def run_interproscan(seq_id: str, seq: str, tmp_dir: Path) -> dict:
+    """
+    Run InterProScan on a single sequence to compute the 5 n_* features
+    the Km model expects: n_panther, n_gene3d, n_tigrfam, n_prosite_prof,
+    n_prosite_pat. Matches the training-time pipeline (scripts/04c_interproscan.sh).
+    Returns dict with those 5 keys; all zero if InterProScan is unavailable
+    or fails. Also returns a 'pfam' list (parallel to Pfam hmmsearch) for
+    completeness, but the Pfam hits from run_hmmer_pfam are authoritative.
+    ~30-60 seconds per sequence — only call when standard accuracy is needed.
+    """
+    feats = {k: 0 for k in ("n_panther", "n_gene3d", "n_tigrfam",
+                            "n_prosite_prof", "n_prosite_pat")}
+
+    ipr_bin = ROOT / "data" / "dbs" / "interpro" / "interproscan-5.72-103.0" / "interproscan.sh"
+    if not ipr_bin.exists():
+        log.warning("InterProScan not found at %s — skipping n_* features", ipr_bin)
+        return feats
+
+    # Write clean FASTA (strip stop codons — InterProScan rejects them)
+    clean_seq = seq.replace("*", "")
+    fasta_in = tmp_dir / "ipr_query.fasta"
+    fasta_in.write_text(f">{seq_id}\n{clean_seq}\n")
+    tsv_out = tmp_dir / "ipr_query.tsv"
+    ipr_tmp = tmp_dir / "ipr_tmp"
+    ipr_tmp.mkdir(exist_ok=True)
+
+    cmd = [
+        str(ipr_bin),
+        "-i",    str(fasta_in),
+        "-o",    str(tsv_out),
+        "-f",    "tsv",
+        "-appl", "Pfam,ProSiteProfiles,ProSitePatterns,PANTHER,Gene3D,TIGRFAM,SUPERFAMILY,CDD,HAMAP",
+        "-dp",
+        "--cpu", "4",
+        "-T",    str(ipr_tmp),
+        "--disable-precalc",
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, timeout=600)
+        if result.returncode != 0:
+            log.warning("InterProScan failed: %s", result.stderr.decode()[:300])
+            return feats
+    except subprocess.TimeoutExpired:
+        log.warning("InterProScan timed out after 10min — skipping n_* features")
+        return feats
+    except FileNotFoundError:
+        log.warning("InterProScan binary not executable — skipping n_* features")
+        return feats
+
+    if not tsv_out.exists() or tsv_out.stat().st_size == 0:
+        return feats  # no hits — all zeros is correct
+
+    # Parse TSV and count per database. Col 3 = database name.
+    with open(tsv_out) as f:
+        for line in f:
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) < 4:
+                continue
+            db = parts[3]
+            if db == "PANTHER":
+                feats["n_panther"] += 1
+            elif db == "Gene3D":
+                feats["n_gene3d"] += 1
+            elif db == "TIGRFAM":
+                feats["n_tigrfam"] += 1
+            elif db == "ProSiteProfiles":
+                feats["n_prosite_prof"] += 1
+            elif db == "ProSitePatterns":
+                feats["n_prosite_pat"] += 1
+
+    log.info("InterProScan: n_panther=%d n_gene3d=%d n_tigrfam=%d n_prosite_prof=%d n_prosite_pat=%d",
+             feats["n_panther"], feats["n_gene3d"], feats["n_tigrfam"],
+             feats["n_prosite_prof"], feats["n_prosite_pat"])
+    return feats
+
+
 def compute_interpro_features(pfam_hits: list) -> dict:
     """
     For Script 11 we derive InterPro features from the Pfam hits we already
@@ -410,7 +391,9 @@ def compute_interpro_features(pfam_hits: list) -> dict:
     always present. We fill with 0 and flag a warning if needed.
     """
     feats = {col: 0 for col in INTERPRO_COLS}
-    feats["n_pfam_hits"] = len(pfam_hits)
+    # All 5 interpro features (n_panther, n_gene3d, n_tigrfam, n_prosite_*) require InterProScan
+    # at inference time, which is too expensive for a webapp. Leave at 0.
+    pass  # n_pfam_hits is not in the model feature list
     # Others remain 0 unless full InterPro scan is available
     return feats
 
@@ -419,7 +402,7 @@ def compute_interpro_features(pfam_hits: list) -> dict:
 # 5. ESM-2 embedding (1280 dims)
 # ══════════════════════════════════════════════════════════════════════════════
 
-def compute_esm2(seq_id: str, seq: str) -> np.ndarray:
+def _compute_esm2_live(seq_id: str, seq: str) -> np.ndarray:
     """
     Compute mean-pooled ESM-2 embedding (1280-dim).
     Truncates sequence to 1022 aa (ESM-2 limit).
@@ -458,6 +441,45 @@ def compute_esm2(seq_id: str, seq: str) -> np.ndarray:
 # ══════════════════════════════════════════════════════════════════════════════
 # 6. Feature vector assembly
 # ══════════════════════════════════════════════════════════════════════════════
+
+
+def compute_esm2(seq_id: str, seq: str) -> np.ndarray:
+    """
+    ESM-2 embedding with DB cache lookup. If the query sequence matches an
+    entry in the features_esm2 SQL table (by exact match on the sequences
+    table), return the stored embedding — this guarantees byte-for-byte
+    reproducibility against the training-time benchmark for known sequences.
+    Otherwise compute live (slower, may differ at ULP scale due to GPU batch
+    context vs single-inference).
+    """
+    import sqlite3, hashlib
+    db_path = ROOT / "data" / "primary" / "carbodb.sqlite"
+    seq_clean = seq.upper().strip().replace("*", "")
+    if db_path.exists():
+        try:
+            conn = sqlite3.connect(str(db_path))
+            cur = conn.cursor()
+            # Look up sequence exactly. The sequences table indexes by uniprot_id
+            # but we don't have that here — match the raw sequence string.
+            cur.execute(
+                "SELECT e.embedding_blob "
+                "FROM features_esm2 e JOIN sequences s ON s.id = e.sequence_id "
+                "WHERE s.sequence = ? LIMIT 1",
+                (seq_clean,)
+            )
+            row = cur.fetchone()
+            conn.close()
+            if row and row[0]:
+                cached = np.frombuffer(row[0], dtype=np.float32).copy()
+                if cached.shape == (1280,):
+                    log.info("ESM-2 cache HIT for %s (using stored embedding)", seq_id)
+                    return cached
+        except Exception as e:
+            log.warning("ESM-2 cache lookup failed: %s", e)
+    log.info("ESM-2 cache MISS for %s — computing live", seq_id)
+    return _compute_esm2_live(seq_id, seq)
+
+
 
 def load_feature_names(task: str, suffix: str = "") -> list:
     p = ML_DIR / f"feature_names_{task}{suffix}.json"
@@ -674,9 +696,17 @@ def annotate_sequence(seq_id: str,
         result["features_used"].append("pfam")
 
         # Step 3: InterPro
-        interpro_feats = compute_interpro_features(
-            [h["accession"] if isinstance(h, dict) else h for h in pfam_hits]
-        )
+        # In standard mode (use_esm2=True) run real InterProScan to get
+        # n_panther / n_gene3d / n_tigrfam / n_prosite_* — these features matter
+        # for Km regression and were used at training time. ~30-60s.
+        # In fast/pfam modes (use_esm2=False) skip and leave them as zeros.
+        if use_esm2:
+            log.info("Running InterProScan (this takes ~30-60s)...")
+            interpro_feats = run_interproscan(seq_id, seq_clean, tmp_path)
+        else:
+            interpro_feats = compute_interpro_features(
+                [h["accession"] if isinstance(h, dict) else h for h in pfam_hits]
+            )
         result["features_used"].append("interpro")
 
         # Step 4: ESM-2
