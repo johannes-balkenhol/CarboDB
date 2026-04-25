@@ -1,3 +1,0 @@
-seq_id	length	is_carboxylase	prob_binary	ec_predicted	ec_confidence	km_predicted_mM	km_predicted_uM	pfam_hits	novelty_flag	runtime_seconds	nearest_uniprot	nearest_pident	nearest_organism	nearest_km_exp_uM	nearest_tier
-rubisco_spinach	469	True	1.0000	4.1.1.39	1.0000	0.0192	19.20	PF00016;PF02788	known	15.0	P00875	97.4	Spinacia oleracea	10.00	brenda_experimental
-ca_human	261	True	1.0000	4.2.1.1	1.0000	0.8516	851.60	PF00194	known	13.33	V9HW21	84.6	Homo sapiens	12.00	brenda_experimental

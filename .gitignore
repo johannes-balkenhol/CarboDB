@@ -31,3 +31,6 @@ data/blast_ec_dbs/clustered/*.clstr
 data/blast_ec_dbs/clustered/*.p*
 data/blast_ec_dbs_exp/*.fa
 data/blast_ec_dbs_exp/*.p*
+
+# Webapp runtime artifacts (batch job results)
+webapp/jobs/

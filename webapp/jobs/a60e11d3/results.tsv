@@ -1,4 +1,0 @@
-seq_id	length	is_carboxylase	prob_binary	ec_predicted	ec_confidence	km_predicted_mM	km_predicted_uM	pfam_hits	novelty_flag	runtime_seconds
-rubisco_spinach	475	True	1.0000	4.1.1.39	0.9998	0.0054	5.4	PF00016;PF02788	known	4.76
-ca_human	260	True	1.0000	4.2.1.1	0.9963	2.8423	2842.2999999999997	PF00194	known	4.58
-pepc_short	143	True	0.9993	4.2.1.1	0.9810	12.8713	12871.3		borderline	4.43

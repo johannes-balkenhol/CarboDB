@@ -1,1 +1,0 @@
-{"job_id": "eb52792e", "status": "completed", "mode": "standard", "kingdom": "plant", "email": null, "n_sequences": 2, "processed": 2, "created_at": "2026-04-23T06:47:34.351437", "input_file": "webapp/jobs/eb52792e/input.faa", "result_file": "webapp/jobs/eb52792e/results.tsv", "started_at": "2026-04-23T06:47:34.355052", "completed_at": "2026-04-23T06:48:03.119177"}
