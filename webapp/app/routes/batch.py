@@ -78,6 +78,19 @@ def download_results(job_id: str):
                         filename=f"carbodb_batch_{job_id}.tsv")
 
 
+@router.get("/jobs/{job_id}/seq/{seq_id}")
+def get_seq_detail(job_id: str, seq_id: str):
+    """Return full per-sequence predict response saved by run_batch_job."""
+    job_path = os.path.join(JOBS_DIR, job_id, "job.json")
+    if not os.path.exists(job_path):
+        raise HTTPException(404, "Job not found")
+    seq_json = os.path.join(JOBS_DIR, job_id, f"seq_{seq_id}.json")
+    if not os.path.exists(seq_json):
+        raise HTTPException(404, "Per-sequence detail not found")
+    with open(seq_json) as f:
+        return json.load(f)
+
+
 def run_batch_job(job_id: str, input_path: str, mode: str, kingdom: str):
     from ..pipeline.predict import predict_sequence
     from ..pipeline.blast_similar import run_blast_similar
@@ -115,6 +128,14 @@ def run_batch_job(job_id: str, input_path: str, mode: str, kingdom: str):
                 try:
                     r = predict_sequence(sequence, mode=mode,
                                         kingdom=kingdom, seq_id=seq_id)
+                    # Save full per-sequence response so the UI Details panel can load
+                    # rich data (SHAP, features_computed, top_similar) without re-running predict.
+                    try:
+                        seq_json_path = os.path.join(job_dir, f"seq_{seq_id}.json")
+                        with open(seq_json_path, "w") as fseq:
+                            json.dump(r, fseq)
+                    except Exception as exc:
+                        print(f"Failed to save per-seq JSON for {seq_id}: {exc}")
                     # pfam_hits is now list[dict] with {accession, name, e_value, bitscore}.
                     # Collapse to accessions-only for the TSV (rich data lives in single-predict).
                     _hits = r.get('pfam_hits', []) or []
