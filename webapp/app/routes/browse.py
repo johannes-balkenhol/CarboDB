@@ -14,6 +14,11 @@ from ..startup import EC_NAMES
 
 router = APIRouter(tags=["browse"])
 
+# Stats cache — banner numbers don't change between sessions, only when ingestion runs.
+import time as _time
+_STATS_CACHE = {"data": None, "ts": 0.0}
+_STATS_TTL_SEC = 600  # 10 minutes
+
 DB_PATH_ENV = "DB_PATH"
 DEFAULT_DB = "data/primary/carbodb.sqlite"
 
@@ -25,6 +30,10 @@ def _db():
         raise HTTPException(503, f"Database not found at {path}")
     conn = sqlite3.connect(path, timeout=30)
     conn.row_factory = sqlite3.Row
+    # Performance pragmas: 512MB page cache, in-memory temp btrees
+    conn.execute("PRAGMA cache_size = -524288")
+    conn.execute("PRAGMA temp_store = MEMORY")
+    conn.execute("PRAGMA mmap_size = 30000000000")
     return conn
 
 
@@ -128,6 +137,10 @@ def browse(
 # ────────────────────────────────────────────────────────────────────────────
 @router.get("/stats")
 def stats():
+    now = _time.time()
+    cached = _STATS_CACHE["data"]
+    if cached is not None and now - _STATS_CACHE["ts"] < _STATS_TTL_SEC:
+        return cached
     conn = _db()
     try:
         # Single pass over sequences (uses idx_seq_label) instead of 4 passes
@@ -162,7 +175,7 @@ def stats():
         for r in ec_dist_rows
     ]
 
-    return {
+    result = {
         "total_sequences":       total,
         "predicted_carboxylases": predicted_carboxylases,
         "with_experimental_km":   with_experimental_km,
@@ -170,6 +183,9 @@ def stats():
         "ec_classes_total":       len(ec_distribution),
         "ec_distribution":        ec_distribution,
     }
+    _STATS_CACHE["data"] = result
+    _STATS_CACHE["ts"] = now
+    return result
 
 
 # ────────────────────────────────────────────────────────────────────────────
