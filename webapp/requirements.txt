@@ -9,3 +9,5 @@ fair-esm==2.0.0
 torch==2.2.2
 biopython==1.83
 pandas==2.2.1
+httpx>=0.25
+httpx>=0.25

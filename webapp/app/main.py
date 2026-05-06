@@ -8,6 +8,7 @@ from .startup import ModelStore, load_all_models
 from .routes.predict import router as predict_router
 from .routes.browse import router as browse_router
 from .routes.batch import router as batch_router
+from .routes.external import router as external_router
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 log = logging.getLogger(__name__)
@@ -32,6 +33,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"],
 app.include_router(predict_router, prefix="/api/v1")
 app.include_router(browse_router, prefix="/api/v1")
 app.include_router(batch_router, prefix="/api/v1")
+app.include_router(external_router, prefix="/api/v1")
 
 @app.get("/api/v1/health")
 def health():
