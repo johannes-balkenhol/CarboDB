@@ -34,3 +34,4 @@ data/blast_ec_dbs_exp/*.p*
 
 # Webapp runtime artifacts (batch job results)
 webapp/jobs/
+*.before_*
