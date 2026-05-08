@@ -21,15 +21,17 @@ Output bundles (under data/motifs_v3_form_split/):
 
 Form classification (precedence order):
 
-    Form I      panther_family = PTHR42704     (RuBisCO large chain canonical)
-    Form II     raw_ipr_json contains IPR017443  (Form II large chain)
-    Form III    raw_ipr_json contains "Form III" or specific archaeal IPR IDs
-    Form IV     RuBisCO-like (RLP, doesn't carboxylate)
-    Form-?      Could not classify
+    Form I      Hamap MF_01338 or MF_00132 in raw_ipr_json
+    Form II     Hamap MF_01339 OR CDD cd08211 in raw_ipr_json
+    Form III    Hamap MF_01133 OR CDD cd08213 OR TIGR03326 in raw_ipr_json
+    Form-?      No marker matched (often Form I missing Hamap annotation)
 
-Where the InterPro signal is weak or missing, falls back to organism
-kingdom: Eukaryota+Plantae→I; Archaea→III; Bacteria→I-or-II (kept as
-"Form-?" to avoid bad assignment).
+PANTHER PTHR42704 is NOT used — it matches Forms I, II and III equally.
+CDD cd08212 is NOT used — it is a generic RuBisCO_large entry, not Form-III-specific.
+IPR017443 is NOT used — it matches Forms II/III/IV-RLP indiscriminately.
+
+Verified on textbook entries: P00875 spinach=I, P04718 R.rubrum=II,
+Q58632 M.jannaschii=III.
 
 Stuck-value exclusion list: see STUCK_KM_VALUES below.
 
@@ -89,17 +91,41 @@ MAX_PER_GENUS = 10
 RNG_SEED = 42
 
 # Form classification rules — precedence order matters.
-# (regex / panther_id, form_label, where_to_check)
+#
+# IMPORTANT: PANTHER (PTHR42704) does NOT distinguish Form — both Form II
+# and Form III sequences carry it. CDD cd08212 is also generic (matches
+# all Forms). The reliable markers are Hamap families and a few specific
+# CDD entries.
+#
+# Confirmed via diagnostic on textbook entries (2026-05-07):
+#   P00875 spinach    → I (Hamap MF_01338)
+#   P04718 R.rubrum   → II (Hamap MF_01339 + CDD cd08211)
+#   Q58632 M.jannas.  → III (Hamap MF_01133 + CDD cd08213 + TIGR03326)
+#
+# Distribution before sampling on full DB:
+#   Form I: ~55,000 (Hamap MF_01338)
+#   Form II: ~400  (Hamap MF_01339 + CDD cd08211)
+#   Form III: ~440 (Hamap MF_01133 + CDD cd08213 + TIGR03326)
+#   ?: ~93,500 (likely Form I missing Hamap annotation)
+#
+# (regex_or_string, form_label, where_to_check)
 FORM_RULES = [
-    # Form I — canonical large chain
-    ("PTHR42704", "I",   "panther_family"),
-    # Form II — distinct PANTHER + InterPro signature
-    ("IPR017443", "II",  "raw_ipr_json"),
-    # Form III — archaeal
-    (re.compile(r"Form\s*III|archaeal", re.I), "III", "raw_ipr_json"),
-    # Form IV — RuBisCO-like (RLP), doesn't carboxylate. Excluded from bundles
-    # because they're not real RuBisCOs.
-    (re.compile(r"RuBisCO[-_ ]like|Form\s*IV", re.I), "IV-RLP", "raw_ipr_json"),
+    # === Hamap — most reliable single marker ===
+    ("MF_01338", "I",   "raw_ipr_json"),   # Form I large chain (cyano/plant)
+    ("MF_00132", "I",   "raw_ipr_json"),   # Form I cyanobacterial alt
+    ("MF_01339", "II",  "raw_ipr_json"),   # Form II large chain
+    ("MF_01133", "III", "raw_ipr_json"),   # Form III archaeal
+
+    # === CDD — adds entries Hamap missed ===
+    ("cd08211",  "II",  "raw_ipr_json"),   # Form II specific (NOT cd08212!)
+    ("cd08213",  "III", "raw_ipr_json"),   # Form III specific subtype
+
+    # === TIGRFAM — additional archaeal Form III ===
+    ("TIGR03326", "III", "raw_ipr_json"),
+
+    # NOTE: deliberately NO PTHR42704 (matches all Forms)
+    # NOTE: deliberately NO cd08212 (matches all Forms)
+    # NOTE: deliberately NO IPR017443 (matches Forms II/III/IV-RLP all)
 ]
 
 # ---------------------------------------------------------------------------
@@ -327,11 +353,16 @@ def write_readme(path, counts):
         Form classification rules (in precedence order)
         -----------------------------------------------
 
-        Form I       PANTHER family = PTHR42704
-        Form II      raw IPR JSON contains IPR017443
-        Form III     raw IPR JSON matches /Form III|archaeal/i
-        Form IV-RLP  raw IPR JSON matches /RuBisCO-like|Form IV/i  (excluded)
-        Form ?       no signal — not used in any bundle
+        Form I       Hamap MF_01338 or MF_00132 in raw_ipr_json
+        Form II      Hamap MF_01339 OR CDD cd08211 in raw_ipr_json
+        Form III     Hamap MF_01133 OR CDD cd08213 OR TIGR03326 in raw_ipr_json
+        Form ?       no marker matched (often Form I with missing Hamap)
+
+        PANTHER (PTHR42704) is NOT used — it matches all Forms.
+        CDD cd08212 is NOT used — it is a generic RuBisCO_large entry.
+        IPR017443 is NOT used — it matches Forms II/III/IV-RLP.
+
+        Verified on textbook entries: P00875=I, P04718=II, Q58632=III.
 
         Suggested analyses
         ------------------
