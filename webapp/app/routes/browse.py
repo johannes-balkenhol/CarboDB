@@ -277,6 +277,7 @@ def get_db_seq(uniprot_id: str):
         ec_pred = pred["ec_pred"] if pred else None
         return {
             "id":                       seq["uniprot_id"],
+            "uniprot_id":               seq["uniprot_id"],
             "cdb_query_id":             seq["cdb_id"],
             "sequence_length":          seq["length"],
             "is_carboxylase":           bool(pred and pred["is_co2_pred"]),
