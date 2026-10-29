@@ -16,7 +16,7 @@ def main():
     ap.add_argument("--domtbl-dir", required=True); ap.add_argument("--db", required=True)
     ap.add_argument("--out", required=True); ap.add_argument("--check-sample", type=int, default=20000)
     a = ap.parse_args(); os.makedirs(a.out, exist_ok=True)
-    files = sorted(glob.glob(os.path.join(a.domtbl_dir, "*.domtblout")))
+    files = sorted(glob.glob(os.path.join(a.domtbl_dir, "*.domtblout")) + glob.glob(os.path.join(a.domtbl_dir, "*.domtblout.gz")))
     if not files: sys.exit(f"no *.domtblout in {a.domtbl_dir}")
     t0 = time.time(); catalog = {}; hits = {}; best_ie = {}; n_hits = bad = 0; per_file = []
     with gzip.open(os.path.join(a.out, "domain_hits_pfam.tsv.gz"), "wt") as fo:
@@ -24,7 +24,7 @@ def main():
                  "i_evalue\tc_evalue\tbitscore\tfull_evalue\tfull_score\tdom_n\tdom_of\tsource_file\n")
         for fp in files:
             n_file = 0
-            for line in open(fp):
+            for line in (gzip.open(fp, "rt") if fp.endswith(".gz") else open(fp)):
                 if line.startswith("#") or not line.strip(): continue
                 r = parse_line(line)
                 if r is None: bad += 1; continue
