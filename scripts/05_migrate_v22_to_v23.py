@@ -90,15 +90,17 @@ def main():
                    SELECT e.sequence_id, e.ec_number, e.source, e.evidence_tier FROM old.ec_evidence e
                    WHERE e.evidence_tier BETWEEN 1 AND 4""")
     con.execute("""INSERT INTO main.km_evidence(sequence_id, ec_number, km_value_mM, km_log10_mM, km_raw_value,
-                     km_raw_unit, substrate_raw, co2_form, condition_class, measurement_group_id, commentary)
+                     km_raw_unit, substrate_raw, co2_form, condition_class, exclude_reason, measurement_group_id, commentary)
                    SELECT k.sequence_id, COALESCE(k.ec_number, s.ec_number), k.km_value_mM, k.km_log10_mM,
                      k.km_value_mM, k.km_unit, k.substrate,
                      CASE WHEN lower(k.substrate) LIKE '%hco3%' OR lower(k.substrate) LIKE '%bicarbonate%'
                                OR lower(COALESCE(k.commentary,'')) LIKE '%hco3%' THEN 'HCO3-'
                           WHEN upper(k.substrate) = 'CO2' THEN 'CO2' ELSE 'unspecified' END,
-                     'use', 'v5_km_' || k.id, k.commentary
-                   FROM old.km_evidence k JOIN old.sequences s ON s.id = k.sequence_id
-                   WHERE k.source = 'brenda'""")
+                     CASE WHEN k.source = 'brenda' THEN 'use' ELSE 'exclude' END,
+                     CASE WHEN k.source = 'brenda' THEN NULL
+                          ELSE 'origin_unverified (v5 source=' || k.source || '); only BRENDA Km is used' END,
+                     'v5_km_' || k.id, k.commentary
+                   FROM old.km_evidence k JOIN old.sequences s ON s.id = k.sequence_id""")
     log(f"  ec_evidence: {con.execute('SELECT COUNT(*) FROM ec_evidence').fetchone()[0]:,}  "
         f"km_evidence: {con.execute('SELECT COUNT(*) FROM km_evidence').fetchone()[0]:,}")
 

@@ -54,6 +54,25 @@ CREATE TABLE runs (
     note           TEXT
 );
 
+-- ---------------------------------------------------------------------
+-- 0b. Artifacts: big files live on disk, the DB holds a pointer + checksum
+--     (embeddings as .npy, domtblout, models, matrices, figures, FASTA)
+-- ---------------------------------------------------------------------
+CREATE TABLE artifacts (
+    artifact_id   INTEGER PRIMARY KEY,
+    kind          TEXT NOT NULL CHECK (kind IN ('embedding','annotation_raw','fasta','matrix','model','prediction','benchmark','figure','other')),
+    name          TEXT NOT NULL,          -- esm2_t33_650M | pfam_domtblout | binary_full_v5.2 ...
+    path          TEXT NOT NULL,          -- relative to CarboDB_data/ (e.g. primary/embeddings/esm2/esm2.npy)
+    row_index     TEXT,                   -- relative path of the sequence_id order file (embeddings, matrices)
+    shape         TEXT,                   -- e.g. 2380446x1280
+    dtype         TEXT,                   -- float32
+    sha256        TEXT NOT NULL,
+    size_bytes    INTEGER,
+    run_id        INTEGER REFERENCES runs(run_id),
+    created_at    TEXT DEFAULT (datetime('now')),
+    UNIQUE (kind, name, path)
+);
+
 CREATE TABLE db_metadata (key TEXT PRIMARY KEY, value TEXT);
 -- required keys: schema_version=2.3, release=v5.2, model_version=v5.2,
 -- n_sequences, n_label0/1/2, n_km_use, built_at, code_commit, zenodo_doi
