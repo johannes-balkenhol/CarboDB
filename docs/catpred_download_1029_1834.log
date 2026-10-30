@@ -1,0 +1,75 @@
+nohup: ignoring input
+Cloning into 'code'...
+Updating files:  81% (205/252)Updating files:  82% (207/252)Updating files:  83% (210/252)Updating files:  84% (212/252)Updating files:  85% (215/252)Updating files:  86% (217/252)Updating files:  87% (220/252)Updating files:  88% (222/252)Updating files:  89% (225/252)Updating files:  90% (227/252)Updating files:  91% (230/252)Updating files:  92% (232/252)Updating files:  93% (235/252)Updating files:  94% (237/252)Updating files:  95% (240/252)Updating files:  96% (242/252)Updating files:  97% (245/252)Updating files:  98% (247/252)Updating files:  99% (250/252)Updating files: 100% (252/252)Updating files: 100% (252/252), done.
+Fetching 11 files:   0%|                                                                                                                           | 0/11 [00:00<?, ?it/s]Fetching 11 files:   0%|                                                                                                                           | 0/11 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/huggingface_hub/utils/_http.py", line 402, in hf_raise_for_status
+    response.raise_for_status()
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/requests/models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 401 Client Error: Unauthorized for url: https://huggingface.co/datasets/RosettaCommons/CatPred-DB/resolve/44409e6e13ae79387fbb3955cdb94612065bfffe/.gitattributes
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/huggingface_hub/utils/_validators.py", line 114, in _inner_fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/huggingface_hub/_snapshot_download.py", line 332, in snapshot_download
+    thread_map(
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/tqdm/contrib/concurrent.py", line 69, in thread_map
+    return _executor_map(ThreadPoolExecutor, fn, *iterables, **tqdm_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/tqdm/contrib/concurrent.py", line 51, in _executor_map
+    return list(tqdm_class(ex.map(fn, *iterables, chunksize=chunksize), **kwargs))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/tqdm/std.py", line 1181, in __iter__
+    for obj in iterable:
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/concurrent/futures/_base.py", line 619, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/concurrent/futures/_base.py", line 317, in _result_or_cancel
+    return fut.result(timeout)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/concurrent/futures/_base.py", line 456, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/concurrent/futures/thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/huggingface_hub/_snapshot_download.py", line 306, in _inner_hf_hub_download
+    return hf_hub_download(
+           ^^^^^^^^^^^^^^^^
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/huggingface_hub/utils/_validators.py", line 114, in _inner_fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/huggingface_hub/file_download.py", line 987, in hf_hub_download
+    return _hf_hub_download_to_local_dir(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/huggingface_hub/file_download.py", line 1250, in _hf_hub_download_to_local_dir
+    _raise_on_head_call_error(head_call_error, force_download, local_files_only)
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/huggingface_hub/file_download.py", line 1655, in _raise_on_head_call_error
+    raise head_call_error
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/huggingface_hub/file_download.py", line 1543, in _get_metadata_or_catch_error
+    metadata = get_hf_file_metadata(
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/huggingface_hub/utils/_validators.py", line 114, in _inner_fn
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/huggingface_hub/file_download.py", line 1460, in get_hf_file_metadata
+    r = _request_wrapper(
+        ^^^^^^^^^^^^^^^^^
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/huggingface_hub/file_download.py", line 283, in _request_wrapper
+    response = _request_wrapper(
+               ^^^^^^^^^^^^^^^^^
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/huggingface_hub/file_download.py", line 307, in _request_wrapper
+    hf_raise_for_status(response)
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/huggingface_hub/utils/_http.py", line 419, in hf_raise_for_status
+    raise _format(GatedRepoError, message, response) from e
+huggingface_hub.errors.GatedRepoError: 401 Client Error. (Request ID: Root=1-6ae383be-7781461424997b1e47ecc3c5;f44d7f67-0f57-4089-96b7-11c329b33a3e)
+
+Cannot access gated repo for url https://huggingface.co/datasets/RosettaCommons/CatPred-DB/resolve/44409e6e13ae79387fbb3955cdb94612065bfffe/.gitattributes.
+Access to dataset RosettaCommons/CatPred-DB is restricted. You must have access to it and be authenticated to access it. Please log in.

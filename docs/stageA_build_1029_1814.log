@@ -1,0 +1,70 @@
+nohup: ignoring input
+pass 1 complete Thu Oct 29 09:14:36 PM CET 2026
+# 04b parse report (2026-10-29 21:20, 361 s)
+
+- domtblout files: 316 (hits/file min 939, max 10718)
+- domain hits parsed: 2,386,715   malformed lines: 0
+- sequences with >=1 Pfam hit: 628,425 of 2,380,446
+- distinct Pfam families: 2,910
+- CDB ids in domtblout but not in DB: 0
+
+## Missing in features_domains: 1,000
+- with parsed hits (insert bug, fixable): 1,000
+- without hits (no Pfam hit or never scanned): 0
+
+## DB pfam_hits_json vs domtblout (n=20,000)
+| i-evalue cutoff | exact agreement |
+|---|---|
+| none | 26.265% |
+| 0.001 | 21.625% |
+| 1e-05 | 17.960% |
+| 1e-10 | 15.845% |
+
+## Most frequent families
+- PF02788 RuBisCO_large_N: 150,917
+- PF00016 RuBisCO_large: 149,841
+- PF02786 CPSase_L_D2: 124,860
+- PF02222 ATP-grasp: 120,646
+- PF07478 Dala_Dala_lig_C: 111,958
+- PF02785 Biotin_carb_C: 68,469
+- PF00289 Biotin_carb_N: 67,346
+- PF02655 ATP-grasp_3: 59,781
+- PF25596 CPSase_L_D1: 46,058
+- PF00364 Biotin_lipoyl: 44,367
+
+21:20:39 identity + sequences
+21:21:06   sequences: 2,380,446
+21:21:06 evidence
+21:21:12   ec_evidence: 2,380,446  km_evidence: 2,971
+21:21:12 feature tables (copied unchanged)
+21:22:23   features_composition: 2,379,552 rows
+21:22:27   features_domains: 2,379,446 rows
+21:22:41   features_interpro: 2,380,446 rows
+21:23:36   features_esm2: 2,379,552 rows
+21:25:02   features_ankh: 2,380,446 rows
+21:25:02 Pfam catalog + domain hits
+21:25:20   feature_catalog: 2,910  domain_hits: 2,386,715
+21:25:20 predictions (v5; EC/Km only for predicted carboxylases)
+21:25:43 integrity checks
+# Stage A build report (2026-10-29 21:26, 5.8 min)
+
+- output: /var/tmp/job37yv/carbodb_v2.3_dev.sqlite (47.4 GB)
+- sequences: 2,380,446
+- features_composition: 2,379,552
+- features_domains: 2,379,446
+- features_interpro: 2,380,446
+- features_esm2: 2,379,552
+- features_ankh: 2,380,446
+- domain_hits: 2,386,715
+
+## Checks
+- sequences without composition: 894
+- sequences without esm2: 894
+- sequences without features_domains: 1,000
+- sequences without predictions: 0
+- predicted carboxylases: 510,454
+- EC/Km removed from non-carboxylases: 1,869,992
+- predicted carboxylases with Pfam scores: 508,960
+- foreign-key violations: 0
+
+STAGE A DONE Thu Oct 29 09:27:51 PM CET 2026

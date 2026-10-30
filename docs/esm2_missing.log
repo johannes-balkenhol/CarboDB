@@ -1,0 +1,26 @@
+nohup: ignoring input
+17:33:29 894 sequences from missing features_esm2 rows in /storage/users/job37yv/Projects/CarboDB_v3/data/primary/carbodb.sqlite
+Traceback (most recent call last):
+  File "/storage/users/job37yv/Projects/CarboDB/scripts/04e_esm2_embed.py", line 132, in <module>
+    main()
+  File "/storage/users/job37yv/Projects/CarboDB/scripts/04e_esm2_embed.py", line 99, in main
+    emb = Embedder(a.toks, a.trunc)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/storage/users/job37yv/Projects/CarboDB/scripts/04e_esm2_embed.py", line 38, in __init__
+    self.model.eval().cuda()
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1065, in cuda
+    return self._apply(lambda t: t.cuda(device))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/torch/nn/modules/module.py", line 915, in _apply
+    module._apply(fn)
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/torch/nn/modules/module.py", line 942, in _apply
+    param_applied = fn(param)
+                    ^^^^^^^^^
+  File "/home/job37yv/miniforge3/envs/carboxylase/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1065, in <lambda>
+    return self._apply(lambda t: t.cuda(device))
+                                 ^^^^^^^^^^^^^^
+RuntimeError: CUDA error: out of memory
+CUDA kernel errors might be asynchronously reported at some other API call, so the stacktrace below might be incorrect.
+For debugging consider passing CUDA_LAUNCH_BLOCKING=1
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+
