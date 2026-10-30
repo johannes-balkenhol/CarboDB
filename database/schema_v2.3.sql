@@ -54,6 +54,13 @@ CREATE TABLE runs (
     note           TEXT
 );
 
+CREATE TABLE artifacts (
+    artifact_id INTEGER PRIMARY KEY,
+    kind TEXT NOT NULL CHECK (kind IN ('embedding','annotation_raw','fasta','matrix','model','prediction','benchmark','figure','other')),
+    name TEXT NOT NULL, path TEXT NOT NULL, row_index TEXT, shape TEXT, dtype TEXT,
+    sha256 TEXT NOT NULL, size_bytes INTEGER, run_id INTEGER REFERENCES runs(run_id),
+    created_at TEXT DEFAULT (datetime('now')), UNIQUE (kind, name, path));
+
 CREATE TABLE db_metadata (key TEXT PRIMARY KEY, value TEXT);
 -- required keys: schema_version=2.3, release=v5.2, model_version=v5.2,
 -- n_sequences, n_label0/1/2, n_km_use, built_at, code_commit, zenodo_doi

@@ -39,3 +39,4 @@ webapp/jobs/
 handoff_*.tar.gz
 data/motifs_v*_*.tar.gz
 data/motifs_v3_form_split/
+docs/*.pid
