@@ -113,9 +113,28 @@ No re-download for Paper 1 (it would change every number and cost 1–2 weeks of
 | BLAST/DIAMOND | dropped in v5 | **DIAMOND vs training positives** (pident, evalue, best EC) | ⬜ hours |
 | Nearest measured Km | — | Km + identity of the most similar sequence **with experimental Km** | ⬜ computed per CV fold (see S5) |
 | RuBisCO block | — | **Form I/II/III** (from HAMAP hits already in InterPro), **Q149** (hmmalign to Form I profile), optional conservation score | ⬜ < 1 h |
-| Motifs (Aparna) | — | NRGEIA presence (biotin carboxylases), Q149 above | ⬜ after her handover |
+| Motifs (Aparna) | — | see **S3m** below | ⬜ after her handover |
 | Ankh | ✅ (unused) | stays unused; optional one benchmark row | — |
 - **Check:** 0 sequences without composition/ESM-2/Pfam rows; `run.json` per block.
+
+### S3m — Motifs (Aparna's work, integrated as data, not as a side analysis)
+Question (decision 2026-10-29): **which motifs associate with Km globally, and with Km within an EC class?**
+Not: which motifs discriminate carboxylases (that is answered by Pfam/ESM already).
+1. **Motif set frozen** → `motif_catalog` (id, family, consensus/PWM file, origin = MEME run / literature, version).
+   Inputs: `raw/labels/motifs_input_v1/` (RuBisCO, ACC, PCC, PEPC 150 each, VKGC 80; gold 116/100/50).
+   Set = Aparna's motifs + known markers (NRGEIA biotin carboxylase, RuBisCO Gln149 position).
+2. **Scan all carboxylase sequences** (FIMO, fixed p-threshold, same for all) → `motif_hits`
+   (sequence_id, motif_id, start, p, score); Gln149 via hmmalign to the Form I profile → residue per sequence.
+   Compute: < 1 h at 32 threads.
+3. **Association test** on cleaned Km (S2, BRENDA only), unit = measurement group:
+   - global: motif present/score vs log10 Km;
+   - within EC: same, per EC with ≥ N groups (N from G1); within RuBisCO also within Form I/II/III;
+   - controls: phylogeny (cluster/genus-grouped permutation or leave-genus-out), FDR over all motifs.
+   Output: `secondary/motifs/km_association.tsv` → Table S + Fig 5.
+4. **As features:** motifs that pass step 3 enter the Km models as one block (S6), kept only if the
+   ablation improves within-EC Km (G3). "Motifs only" is also one benchmark row (S7).
+Owner: Aparna (motif set, step 3 interpretation) + Johannes (scan, DB, models). Gln149 re-test on
+cleaned Km settles ρ = −0.34 vs −0.27.
 
 ### S4 — Splits (v5: 06)
 - **Keep:** CD-HIT 40 % clusters (45,915), 80/10/10, stratified by EC + Km bin + kingdom.
@@ -142,19 +161,54 @@ No re-download for Paper 1 (it would change every number and cost 1–2 weeks of
 ### S7 — Benchmark (v5: 09, 13) — **gate G2: L0 reproduces v5 first**
 - Components alone: Pfam rule, PROSITE/InterPro, PANTHER, BLAST-NN (EC + Km transfer), ESM-2 only, motifs only.
 - Full pipeline and ablations; learners XGB vs RF vs MLP.
-- External Km: UniKP, CatPred (GreenAse if access).
+- External Km: UniKP, CatPred (GreenAse if access) — see **S7b**.
 - Km global vs within-EC, per EC.
 - Strata: identity bins, fragments 75/50/25 % (regenerate missing BLAST queries), kingdom, no-Pfam, OOD.
 - **TP/TN lists** per method → `benchmark_calls`.
 - Compute: 2–4 days incl. CatPred setup.
+
+### S7b — Km comparison with CatPred (and UniKP) on a fair test set
+**Why it needs care:** CatPred is trained on CatPred-DB (41,174 Km values from BRENDA +
+SABIO-RK). Our Km labels are BRENDA too, so a naive test set contains measurements CatPred has
+already seen, which would make CatPred look better than it is. UniKP has the same issue.
+
+**Test sets (all report the same metrics, side by side):**
+| Set | Definition | What it shows |
+|---|---|---|
+| T-all | our grouped Km test split (cleaned, BRENDA only, use/convert) | headline numbers; CatPred may have seen part of it → marked "possibly seen" |
+| **T-fair** (main) | T-all minus every sequence ≥ 40 % identical (DIAMOND) to any **CatPred-DB Km training** sequence, and minus measurements present in CatPred-DB (same UniProt + same value) | unseen by **both** models → the comparison for the paper |
+| T-identity | T-all binned by identity to the nearest training sequence of each tool (<30 / 30–50 / 50–70 / >70 %) | how each tool degrades for novel enzymes |
+| T-per-EC | T-fair per EC with ≥ 10 measurement groups (RuBisCO, CA, PEPC, …) | where the within-EC model helps |
+
+**Inputs for CatPred:** sequence + substrate SMILES. CO₂ → `O=C=O`; values converted from HCO₃⁻
+are compared as CO₂. Both tools predict log10 Km; units checked against CatPred-DB (mM).
+
+**Metrics:** R², Pearson, Spearman, fraction within 2× and 10×, MAE in log10; bootstrap
+95 % CI **over measurement groups** (not rows). CatPred's uncertainty estimate is reported as an
+extra column (are its confident predictions better?).
+
+**Expected story (to test, not assume):** a general predictor (CatPred) vs a carboxylase-
+specific one (CarboDB global and within-EC). If CatPred matches us on raw R², the paper's case
+rests on EC detection, the curated resource and interpretability (Gln149); if the within-EC
+model is better on T-fair per EC, that is the headline.
+
+**Practical:** CatPred code + pretrained checkpoints (github: maranasgroup/catpred) and
+CatPred-DB (Hugging Face: RosettaCommons/CatPred-DB) into `raw/external/catpred/` with
+version + checksum; run on GPU (few hundred to few thousand sequences: minutes). Setup 1–2 days.
+Results → `benchmark_results` (method = catpred / unikp) + `benchmark_calls`.
 
 ### S8 — Interpretation (v5: 12)
 - SHAP per tier (binary, EC, Km global, Km per EC), aggregated per feature block.
 - RuBisCO: SHAP of Form / Q149 / conservation in the RuBisCO Km model → Fig 5.
 
 ### S9 — Predict + release DB (v5: 10, 05, gmgc/05b)
-- **GMGC embeddings were not saved in v5** → ESM-2 for the ~500 K candidates (~15 h A100),
-  queued after the Pfam rescan so the 64-thread limit holds; stored in `primary/embeddings/esm2_gmgc/`.
+- **Sequence sources:** main DB (2,380,446) = BRENDA + SwissProt + TrEMBL (+ negatives).
+  Metagenomes are separate: **GMGC** (Paper 1, Fig 6) and **TARA** (Paper 2, frozen, not rerun).
+- **GMGC candidates (~500 K, Pfam-prescreened with 19 carboxylase families)** need, like the main DB:
+  - **full Pfam scan** with scores (same `04b_pfam_rescan.sh` settings; ~4–5 h at 64 threads);
+  - **ESM-2** (not saved in v5; ~15 h A100) → `primary/embeddings/esm2_gmgc/`;
+  - composition (minutes) and the other feature blocks of the final models.
+  Queued after the main Pfam rescan so the 64-thread limit holds.
 - Predict 2.38 M (EC/Km only for predicted carboxylases; Km within-EC where available,
   else global; `km_in_domain` flag) + GMGC 500 K candidates.
 - Build `carbodb_v5.2.sqlite` in **one pass** on SSD (schema v2.3) → `releases/` + manifest
